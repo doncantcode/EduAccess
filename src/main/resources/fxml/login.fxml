@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Screen 1: Login. Controller: com.eduaccess.ui.LoginController (created by EduAccessApp). -->
+<HBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      styleClass="login-root" fx:controller="com.eduaccess.ui.LoginController">
+
+    <!-- Left: brand panel with the three functions and the SDG 4 link. -->
+    <VBox styleClass="login-brand" spacing="22" HBox.hgrow="ALWAYS">
+        <Label styleClass="brand-name-light" text="EduAccess"/>
+        <Label styleClass="brand-headline" text="Every learner deserves the right tools to learn." wrapText="true"/>
+        <VBox spacing="2">
+            <Label styleClass="brand-name-light" text="Physical Resource Hub"/>
+            <Label styleClass="brand-text" text="Calculators, laptops and books shared by senior students." wrapText="true"/>
+        </VBox>
+        <VBox spacing="2">
+            <Label styleClass="brand-name-light" text="Open Digital Library"/>
+            <Label styleClass="brand-text" text="K-12 modules to college e-books, available offline." wrapText="true"/>
+        </VBox>
+        <VBox spacing="2">
+            <Label styleClass="brand-name-light" text="AI Study Assistant"/>
+            <Label styleClass="brand-text" text="Coming in a later release." wrapText="true"/>
+        </VBox>
+        <Region VBox.vgrow="ALWAYS"/>
+        <Label styleClass="brand-text" text="Aligned with UN Sustainable Development Goal 4: Quality Education" wrapText="true"/>
+    </VBox>
+
+    <!-- Right: the sign-in card. -->
+    <StackPane HBox.hgrow="ALWAYS">
+        <padding>
+            <Insets top="40" right="40" bottom="40" left="40"/>
+        </padding>
+        <VBox styleClass="card" spacing="10" maxWidth="440">
+            <padding>
+                <Insets top="32" right="32" bottom="32" left="32"/>
+            </padding>
+
+            <Label styleClass="heading" text="Welcome back"/>
+            <Label styleClass="muted" text="Sign in with your school ID to continue." wrapText="true"/>
+
+            <Label styleClass="field-label" text="School ID / Student number"/>
+            <TextField fx:id="schoolId" promptText="e.g. 2026-SHS-0001" onAction="#handleSignIn"/>
+
+            <Label styleClass="field-label" text="Password"/>
+            <HBox spacing="8">
+                <StackPane HBox.hgrow="ALWAYS">
+                    <PasswordField fx:id="password" promptText="Password" onAction="#handleSignIn" maxWidth="Infinity"/>
+                    <TextField fx:id="visiblePassword" promptText="Password" visible="false" managed="false" maxWidth="Infinity"/>
+                </StackPane>
+                <ToggleButton fx:id="showPassword" text="Show"/>
+            </HBox>
+
+            <Label styleClass="field-label" text="Sign in as"/>
+            <FlowPane hgap="8" vgap="8">
+                <fx:define>
+                    <ToggleGroup fx:id="roleGroup"/>
+                </fx:define>
+                <RadioButton text="Student" toggleGroup="$roleGroup" userData="STUDENT" selected="true"/>
+                <RadioButton text="Library Admin" toggleGroup="$roleGroup" userData="LIBRARY_ADMIN"/>
+            </FlowPane>
+
+            <Label fx:id="errorText" styleClass="error-text" wrapText="true"/>
+
+            <Button text="Sign in" styleClass="button-primary" maxWidth="Infinity" onAction="#handleSignIn"/>
+            <Hyperlink text="New here? Create account" onAction="#handleRegister"/>
+            <Label styleClass="muted" text="No internet? Sign in works offline with a local account." wrapText="true"/>
+        </VBox>
+    </StackPane>
+</HBox>

@@ -1,0 +1,278 @@
+/*
+ * EduAccess theme. Navy: navigation. Blue: physical resources. Teal: digital library.
+ * Amber: administration. Status badges always carry a text label, not only a colour.
+ */
+.root {
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #F4F6FA;
+}
+
+.page, .scroll-pane, .scroll-pane > .viewport {
+    -fx-background-color: #F4F6FA;
+}
+
+.topbar {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #DCE3EE;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 20;
+}
+
+.brand-name {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F2D5C;
+}
+
+.sidebar {
+    -fx-background-color: #0F2D5C;
+    -fx-padding: 16 12;
+    -fx-min-width: 230;
+    -fx-pref-width: 230;
+}
+
+.sidebar-section {
+    -fx-text-fill: #8FA6C9;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 8 4 8;
+}
+
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #E6EEFA;
+    -fx-alignment: CENTER-LEFT;
+    -fx-max-width: infinity;
+    -fx-padding: 9 12;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.nav-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.10);
+}
+
+.nav-button.nav-active {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #0F2D5C;
+    -fx-font-weight: bold;
+}
+
+.sdg-note {
+    -fx-text-fill: #C9D6EC;
+    -fx-font-size: 12px;
+}
+
+.card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 12;
+    -fx-border-color: #DCE3EE;
+    -fx-border-radius: 12;
+    -fx-padding: 20;
+}
+
+.heading {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F2D5C;
+}
+
+.section-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F2D5C;
+}
+
+.item-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #14213D;
+}
+
+.muted {
+    -fx-text-fill: #5B6B82;
+}
+
+.metric-value {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.metric-blue { -fx-text-fill: #1F5FBF; }
+.metric-amber { -fx-text-fill: #C77700; }
+.metric-teal { -fx-text-fill: #0F8B7A; }
+.metric-navy { -fx-text-fill: #0F2D5C; }
+.metric-red { -fx-text-fill: #C0392B; }
+
+.badge {
+    -fx-padding: 3 9;
+    -fx-background-radius: 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.badge-available { -fx-background-color: #DCF3E3; -fx-text-fill: #1E6B36; }
+.badge-borrowed { -fx-background-color: #FFF1C9; -fx-text-fill: #8A5A00; }
+.badge-overdue { -fx-background-color: #FDE2E0; -fx-text-fill: #A3271C; }
+.badge-returned { -fx-background-color: #DDE8FA; -fx-text-fill: #1F4FA0; }
+.badge-pending { -fx-background-color: #FFF4CC; -fx-text-fill: #7A5A00; }
+.badge-rejected { -fx-background-color: #E5E7EB; -fx-text-fill: #374151; }
+.badge-cached { -fx-background-color: #D6F2EE; -fx-text-fill: #0B6B5E; }
+.badge-online { -fx-background-color: #EEF1F6; -fx-text-fill: #4B5B73; }
+
+.banner {
+    -fx-padding: 10 14;
+    -fx-background-radius: 10;
+    -fx-font-size: 14px;
+}
+
+.banner-danger { -fx-background-color: #FDECEA; -fx-text-fill: #8E1F16; }
+.banner-warning { -fx-background-color: #FFF6D8; -fx-text-fill: #6B4A00; }
+.banner-info { -fx-background-color: #E4EEFB; -fx-text-fill: #17457F; }
+
+.button-primary {
+    -fx-background-color: #1F5FBF;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 9 18;
+    -fx-cursor: hand;
+}
+
+.button-teal {
+    -fx-background-color: #0F8B7A;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 8;
+    -fx-padding: 9 18;
+    -fx-cursor: hand;
+}
+
+.button-primary:disabled, .button-teal:disabled, .button-secondary:disabled, .button-danger-outline:disabled {
+    -fx-opacity: 0.45;
+}
+
+.button-secondary {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #B9C5D6;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #1F3B66;
+    -fx-padding: 7 14;
+    -fx-cursor: hand;
+}
+
+.button-danger-outline {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C0392B;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #A3271C;
+    -fx-padding: 7 14;
+    -fx-cursor: hand;
+}
+
+.field-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1F3B66;
+}
+
+.error-text {
+    -fx-text-fill: #B42318;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}
+
+.tracker-step {
+    -fx-text-fill: #8A97AB;
+}
+
+.tracker-current {
+    -fx-text-fill: #0F2D5C;
+    -fx-font-weight: bold;
+}
+
+.step-current {
+    -fx-text-fill: #1F5FBF;
+    -fx-font-weight: bold;
+}
+
+.toggle-card {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #B9C5D6;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10 14;
+    -fx-text-alignment: center;
+    -fx-cursor: hand;
+}
+
+.toggle-card:selected {
+    -fx-background-color: #E4EEFB;
+    -fx-border-color: #1F5FBF;
+    -fx-border-width: 2;
+    -fx-text-fill: #0F2D5C;
+}
+
+.item-art {
+    -fx-background-radius: 10;
+}
+
+.art-calc { -fx-background-color: linear-gradient(to bottom right, #1F5FBF, #0F2D5C); }
+.art-laptop { -fx-background-color: linear-gradient(to bottom right, #0F8B7A, #0B5E53); }
+.art-book { -fx-background-color: linear-gradient(to bottom right, #6D4AB0, #43297A); }
+.art-kit { -fx-background-color: linear-gradient(to bottom right, #C77700, #8A4B00); }
+.art-doc-k12 { -fx-background-color: linear-gradient(to bottom right, #6D4AB0, #43297A); }
+.art-doc-college { -fx-background-color: linear-gradient(to bottom right, #0F8B7A, #0B5E53); }
+
+.art-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.login-root {
+    -fx-background-color: #F4F6FA;
+}
+
+.login-brand {
+    -fx-background-color: linear-gradient(to bottom right, #0F2D5C, #1F5FBF, #0F8B7A);
+    -fx-padding: 48;
+}
+
+.brand-name-light {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+
+.brand-headline {
+    -fx-font-size: 34px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-wrap-text: true;
+}
+
+.brand-text {
+    -fx-text-fill: #DCE8FA;
+    -fx-font-size: 15px;
+    -fx-wrap-text: true;
+}
+
+/* Tables: roomy cells, bold headers, and rows that match Ui.fitTable. */
+.table-view .table-cell {
+    -fx-padding: 10 14 10 14;
+    -fx-font-size: 13px;
+}
+
+.table-view .column-header .label {
+    -fx-font-weight: bold;
+    -fx-text-fill: #1F3B66;
+}
+
+.placeholder-message {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #0F8B7A;
+}

@@ -1,0 +1,99 @@
+-- EduAccess schema for SQLite (eduaccess.db).
+-- Applied on every boot by DatabaseInitializer. Every statement is idempotent.
+-- Statements are split on the semicolon character, so never put one inside a comment or a string literal.
+
+PRAGMA user_version = 1;
+
+-- Accounts. Login uses school_id + password_hash; role decides permissions and the login radio button.
+CREATE TABLE IF NOT EXISTS users (
+    user_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    school_id        TEXT    NOT NULL UNIQUE,
+    password_hash    TEXT    NOT NULL,
+    full_name        TEXT    NOT NULL,
+    role             TEXT    NOT NULL CHECK (role IN ('Student', 'Admin')),
+    intention        TEXT    CHECK (intention IN ('Borrower', 'Donor', 'Both')),  -- from the registration wizard, NULL for staff
+    education_level  TEXT    CHECK (education_level IN ('Elementary', 'JHS', 'SHS', 'College')),
+    program          TEXT,                                                       -- college course, or SHS strand (STEM, ABM, HUMSS, TVL)
+    year_level       INTEGER CHECK (year_level BETWEEN 1 AND 12),                -- grade number (K-12) or year number (College)
+    campus           TEXT,
+    created_at       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Physical catalog: donated and lent calculators, laptops and tablets, textbooks and lab kits.
+-- donor_id is NULL for library-owned stock.
+CREATE TABLE IF NOT EXISTS physical_items (
+    item_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    donor_id        INTEGER REFERENCES users (user_id) ON DELETE SET NULL,
+    title           TEXT    NOT NULL,
+    brand_model     TEXT,
+    category        TEXT    NOT NULL CHECK (category IN ('Calculators', 'Laptops & Tablets', 'Textbooks', 'Lab/Study Kits')),
+    condition       TEXT    NOT NULL CHECK (condition IN ('Like New', 'Good', 'Fair')),
+    pickup_point    TEXT    NOT NULL,
+    photo_path      TEXT,                                                      -- relative path, NULL until a photo is attached
+    status          TEXT    NOT NULL DEFAULT 'Pending'
+                    CHECK (status IN ('Pending', 'Available', 'Borrowed', 'Overdue', 'Returned', 'Rejected')),
+    type_of_giving  TEXT    NOT NULL CHECK (type_of_giving IN ('Donate', 'Lend')),
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Several levels per item, because the donation form lets the donor tick more than one "Recommended for" box.
+CREATE TABLE IF NOT EXISTS physical_item_levels (
+    item_id         INTEGER NOT NULL REFERENCES physical_items (item_id) ON DELETE CASCADE,
+    education_level TEXT    NOT NULL CHECK (education_level IN ('Elementary', 'JHS', 'SHS', 'College')),
+    PRIMARY KEY (item_id, education_level)
+);
+
+-- Loans. Dates are ISO-8601 text (yyyy-MM-dd) and are parsed with java.time.LocalDate.
+-- fee_amount is the accrued overdue fee as of the last update (see LoanPolicy for the daily rate).
+-- fee_waived marks an equity-program waiver granted by the librarian.
+CREATE TABLE IF NOT EXISTS loans (
+    loan_id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    borrower_id      INTEGER NOT NULL REFERENCES users (user_id) ON DELETE RESTRICT,
+    item_id          INTEGER NOT NULL REFERENCES physical_items (item_id) ON DELETE RESTRICT,
+    borrow_date      TEXT    NOT NULL,
+    due_date         TEXT    NOT NULL,
+    return_date      TEXT,
+    loan_period_days INTEGER NOT NULL CHECK (loan_period_days IN (3, 7, 14)),
+    extension_count  INTEGER NOT NULL DEFAULT 0 CHECK (extension_count BETWEEN 0 AND 1),
+    fee_amount       NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (fee_amount >= 0),
+    fee_waived       INTEGER NOT NULL DEFAULT 0 CHECK (fee_waived IN (0, 1)),
+    status           TEXT    NOT NULL CHECK (status IN ('Active', 'Overdue', 'Returned')),
+    CHECK (due_date >= borrow_date),
+    CHECK ((status = 'Returned') = (return_date IS NOT NULL))
+);
+
+-- At most one open loan (Active or Overdue) per item. The database enforces this, not only the UI.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_loans_one_open_loan_per_item
+    ON loans (item_id) WHERE status <> 'Returned';
+CREATE INDEX IF NOT EXISTS ix_loans_borrower ON loans (borrower_id);
+CREATE INDEX IF NOT EXISTS ix_loans_open_due_date ON loans (due_date) WHERE status <> 'Returned';
+CREATE INDEX IF NOT EXISTS ix_items_status ON physical_items (status);
+CREATE INDEX IF NOT EXISTS ix_items_category ON physical_items (category);
+CREATE INDEX IF NOT EXISTS ix_item_levels_level ON physical_item_levels (education_level);
+
+-- Local index of PDFs. file_path is relative to the application folder, for example storage/digital/...
+-- K-12 Module Hub holds Elementary, JHS and SHS modules. College Repository holds College open e-books.
+-- source and license give the attribution that the content licensing rules require.
+CREATE TABLE IF NOT EXISTS digital_resources (
+    resource_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    title             TEXT    NOT NULL,
+    category_tab      TEXT    NOT NULL CHECK (category_tab IN ('K-12 Module Hub', 'College Repository')),
+    subject           TEXT    NOT NULL,
+    education_level   TEXT    NOT NULL CHECK (education_level IN ('Elementary', 'JHS', 'SHS', 'College')),
+    file_path         TEXT    NOT NULL UNIQUE,
+    file_size_mb      REAL    NOT NULL CHECK (file_size_mb >= 0),
+    is_cached_offline INTEGER NOT NULL DEFAULT 0 CHECK (is_cached_offline IN (0, 1)),
+    source            TEXT    NOT NULL,
+    license           TEXT    NOT NULL,
+    CHECK ((category_tab = 'College Repository') = (education_level = 'College'))
+);
+
+-- One row per digital download. Needed for the dashboard "modules downloaded" count and the impact report.
+CREATE TABLE IF NOT EXISTS digital_downloads (
+    download_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    resource_id   INTEGER NOT NULL REFERENCES digital_resources (resource_id) ON DELETE CASCADE,
+    downloaded_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_downloads_user ON digital_downloads (user_id);
+CREATE INDEX IF NOT EXISTS ix_downloads_resource ON digital_downloads (resource_id);

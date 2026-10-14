@@ -1,0 +1,93 @@
+package com.eduaccess.dao;
+
+import com.eduaccess.model.EducationLevel;
+import com.eduaccess.model.Intention;
+import com.eduaccess.model.NewUser;
+import com.eduaccess.model.Role;
+import com.eduaccess.model.User;
+import com.eduaccess.security.PasswordHasher;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Optional;
+
+/** Accounts. Every method runs on a connection the caller provides, so callers can group writes in a transaction. */
+public final class UserDAO {
+
+    private static final String PROFILE_COLUMNS =
+            "user_id, school_id, full_name, role, intention, education_level, program, year_level, campus";
+
+    public long registerUser(Connection c, NewUser user) throws SQLException {
+        String sql = """
+                INSERT INTO users (school_id, password_hash, full_name, role, intention,
+                                   education_level, program, year_level, campus)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            Jdbc.setText(ps, 1, user.schoolId());
+            Jdbc.setText(ps, 2, user.passwordHash());
+            Jdbc.setText(ps, 3, user.fullName());
+            Jdbc.setCode(ps, 4, user.role());
+            Jdbc.setCode(ps, 5, user.intention());
+            Jdbc.setCode(ps, 6, user.educationLevel());
+            Jdbc.setText(ps, 7, user.program());
+            Jdbc.setInt(ps, 8, user.yearLevel());
+            Jdbc.setText(ps, 9, user.campus());
+            ps.executeUpdate();
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                keys.next();
+                return keys.getLong(1);
+            }
+        }
+    }
+
+    public Optional<User> findBySchoolId(Connection c, String schoolId) throws SQLException {
+        return queryOne(c, "SELECT " + PROFILE_COLUMNS + " FROM users WHERE school_id = ?", schoolId);
+    }
+
+    public Optional<User> getProfile(Connection c, long userId) throws SQLException {
+        return queryOne(c, "SELECT " + PROFILE_COLUMNS + " FROM users WHERE user_id = ?", userId);
+    }
+
+    /** Returns the profile when the school ID exists and the password matches. */
+    public Optional<User> authenticate(Connection c, String schoolId, char[] password) throws SQLException {
+        String sql = "SELECT password_hash, " + PROFILE_COLUMNS + " FROM users WHERE school_id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, schoolId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next() || !PasswordHasher.verify(password, rs.getString("password_hash"))) {
+                    return Optional.empty();
+                }
+                return Optional.of(map(rs));
+            }
+        }
+    }
+
+    private Optional<User> queryOne(Connection c, String sql, Object key) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            if (key instanceof Long id) {
+                ps.setLong(1, id);
+            } else {
+                ps.setString(1, (String) key);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(map(rs)) : Optional.empty();
+            }
+        }
+    }
+
+    static User map(ResultSet rs) throws SQLException {
+        return new User(
+                rs.getLong("user_id"),
+                rs.getString("school_id"),
+                rs.getString("full_name"),
+                Jdbc.code(rs, "role", Role.class),
+                Jdbc.code(rs, "intention", Intention.class),
+                Jdbc.code(rs, "education_level", EducationLevel.class),
+                rs.getString("program"),
+                Jdbc.nullableInt(rs, "year_level"),
+                rs.getString("campus"));
+    }
+}
