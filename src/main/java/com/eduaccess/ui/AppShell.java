@@ -188,16 +188,7 @@ public final class AppShell {
             onSignOut.run();
         });
 
-        Label number = new Label("4");
-        number.getStyleClass().add("sdg-number");
-        Label note = new Label(Lang.t("Supporting SDG 4: Quality Education"));
-        note.getStyleClass().add("sdg-note");
-        note.setWrapText(true);
-        HBox sdg = new HBox(number, note);
-        sdg.getStyleClass().add("sdg-card");
-
-        nav.getChildren().addAll(spacer, signOut, sdg);
-        VBox.setMargin(sdg, new Insets(8, 0, 0, 0));
+        nav.getChildren().addAll(spacer, signOut);
         return nav;
     }
 

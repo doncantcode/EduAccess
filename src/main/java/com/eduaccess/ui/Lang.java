@@ -30,7 +30,6 @@ enum Lang {
             Map.entry("Search items, e-books, modules...", "Maghanap ng gamit, e-book, module..."),
             Map.entry("Notifications", "Mga Abiso"),
             Map.entry("Sign out", "Mag-sign out"),
-            Map.entry("Supporting SDG 4: Quality Education", "Para sa SDG 4: De-kalidad na Edukasyon"),
             // Screen headings, section titles, subtitles and metric labels (through the Ui helpers).
             Map.entry("1. Select your education level", "1. Piliin ang iyong antas ng edukasyon"),
             Map.entry("2. Program details", "2. Detalye ng programa"),

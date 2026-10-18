@@ -186,30 +186,6 @@
     -fx-padding: 1 7 1 7;
 }
 
-.sdg-card {
-    -fx-background-color: -ea-navy-2;
-    -fx-background-radius: 10;
-    -fx-padding: 12;
-    -fx-spacing: 10;
-    -fx-alignment: center-left;
-}
-
-.sdg-number {
-    -fx-background-color: #c5192d;
-    -fx-background-radius: 6;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-font-size: 15px;
-    -fx-alignment: center;
-    -fx-min-width: 30;
-    -fx-min-height: 30;
-}
-
-.sdg-note {
-    -fx-text-fill: #cbd5e1;
-    -fx-font-size: 12px;
-}
-
 /* ===== 3. App shell: header ================================================================================= */
 
 .topbar {
