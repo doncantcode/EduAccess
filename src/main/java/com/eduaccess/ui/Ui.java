@@ -142,19 +142,19 @@ final class Ui {
     }
 
     static Label heading(String text) {
-        Label label = new Label(text);
+        Label label = new Label(Lang.t(text));
         label.getStyleClass().add("heading");
         return label;
     }
 
     static Label section(String text) {
-        Label label = new Label(text);
+        Label label = new Label(Lang.t(text));
         label.getStyleClass().add("section-title");
         return label;
     }
 
     static Label muted(String text) {
-        Label label = new Label(text);
+        Label label = new Label(Lang.t(text));
         label.getStyleClass().add("muted");
         label.setWrapText(true);
         return label;

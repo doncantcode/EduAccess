@@ -5,11 +5,13 @@ import com.eduaccess.model.Intention;
 import com.eduaccess.service.AuthService;
 import com.eduaccess.service.ServiceException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.IntStream;
 import javafx.geometry.Insets;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
@@ -47,6 +49,13 @@ public final class RegistrationView {
     private final ComboBox<Integer> year = new ComboBox<>();
     private final ComboBox<String> campus = new ComboBox<>();
     private final ToggleGroup intentionGroup = new ToggleGroup();
+    private final CheckBox under18 = new CheckBox("I am under 18 years old");
+    private final TextField guardianName = new TextField();
+    private final ComboBox<String> relationship = new ComboBox<>();
+    private final TextField guardianContact = new TextField();
+    private final CheckBox guardianAgrees = new CheckBox();
+    /** Shows or hides the guardian fields. Replaced each time the academic step is rebuilt. */
+    private Runnable guardianUpdate = () -> { };
 
     private final Label error = new Label();
     private final StackPane stepArea = new StackPane();
@@ -176,7 +185,30 @@ public final class RegistrationView {
         if (campus.getValue() == null) {
             return "Choose your campus.";
         }
+        if (needsGuardian()) {
+            if (guardianName.getText().isBlank()) {
+                return "Enter your parent's or guardian's full name.";
+            }
+            if (relationship.getValue() == null) {
+                return "Choose how your guardian is related to you.";
+            }
+            if (guardianContact.getText().isBlank()) {
+                return "Enter your guardian's mobile or phone number.";
+            }
+            if (!guardianAgrees.isSelected()) {
+                return "Your parent or guardian must agree before you can register.";
+            }
+        }
         return null;
+    }
+
+    /** Elementary and Junior High always need a guardian. Senior High and College only when under 18. */
+    private boolean needsGuardian() {
+        if (levelGroup.getSelectedToggle() == null) {
+            return false;
+        }
+        EducationLevel level = (EducationLevel) levelGroup.getSelectedToggle().getUserData();
+        return AuthService.alwaysMinor(level) || under18.isSelected();
     }
 
     private VBox accountStep() {
@@ -214,13 +246,52 @@ public final class RegistrationView {
         year.setPrefWidth(320);
         campus.setPrefWidth(320);
         return Ui.column(12, Ui.section("1. Select your education level"), levels,
-                Ui.section("2. Program details"), Ui.card(details));
+                Ui.section("2. Program details"), Ui.card(details), ageSection());
+    }
+
+    /**
+     * Section 3 of the academic step: learners under 18 register with a parent's or guardian's consent, as
+     * RA 10173 (the Data Privacy Act) requires. Only the guardian's name, relationship and number are kept.
+     */
+    private VBox ageSection() {
+        Label always = Ui.muted("Learners in Elementary and Junior High need a parent's or guardian's consent.");
+        GridPane grid = formGrid();
+        grid.setHgap(14);
+        grid.setVgap(10);
+        guardianName.setPromptText("e.g. Maria Santos");
+        guardianContact.setPromptText("e.g. 0917 123 4567");
+        guardianName.setPrefWidth(280);
+        relationship.setPrefWidth(200);
+        guardianContact.setPrefWidth(220);
+        grid.add(Ui.labelled("Parent or guardian's full name", guardianName), 0, 0);
+        grid.add(Ui.labelled("Relationship", relationship), 1, 0);
+        grid.add(Ui.labelled("Mobile or phone number", guardianContact), 2, 0);
+        guardianAgrees.setText("My parent or guardian has read how EduAccess uses my information and agrees to "
+                + "this account. Only my education level and program are used to choose materials.");
+        guardianAgrees.setWrapText(true);
+        guardianAgrees.setMaxWidth(760);
+        VBox guardian = new VBox(12, grid, guardianAgrees);
+        guardian.getStyleClass().add("card-flat");
+
+        guardianUpdate = () -> {
+            EducationLevel level = levelGroup.getSelectedToggle() == null ? null
+                    : (EducationLevel) levelGroup.getSelectedToggle().getUserData();
+            boolean young = level != null && AuthService.alwaysMinor(level);
+            always.setVisible(young);
+            always.setManaged(young);
+            under18.setVisible(level != null && !young);
+            under18.setManaged(level != null && !young);
+            guardian.setVisible(needsGuardian());
+            guardian.setManaged(needsGuardian());
+        };
+        guardianUpdate.run();
+        return Ui.column(10, Ui.section("3. Age and guardian consent"), always, under18, guardian);
     }
 
     private VBox usageStep() {
         ToggleButton borrower = intentionButton("Borrow items", "Borrow calculators, laptops and books.",
                 Intention.BORROWER);
-        ToggleButton donor = intentionButton("Donate or lend", "Give or lend books, calculators and devices.",
+        ToggleButton donor = intentionButton("Donate", "Give books, calculators and devices to the library.",
                 Intention.DONOR);
         ToggleButton both = intentionButton("Both", "Borrow and donate.", Intention.BOTH);
         HBox choices = new HBox(12, borrower, donor, both);
@@ -254,6 +325,10 @@ public final class RegistrationView {
         });
         program.setDisable(true);
         campus.getItems().setAll("Main Campus", "North Campus");
+        relationship.getItems().setAll("Mother", "Father", "Legal guardian", "Grandparent", "Other relative");
+        relationship.setPromptText("Choose");
+        levelGroup.selectedToggleProperty().addListener((obs, was, now) -> guardianUpdate.run());
+        under18.selectedProperty().addListener((obs, was, now) -> guardianUpdate.run());
         year.setPromptText("Choose level first");
     }
 
@@ -269,13 +344,17 @@ public final class RegistrationView {
                 year.getValue(),
                 campus.getValue(),
                 intention);
+        AuthService.GuardianConsent guardian = needsGuardian()
+                ? new AuthService.GuardianConsent(guardianName.getText(), relationship.getValue(),
+                        guardianContact.getText(), guardianAgrees.isSelected())
+                : null;
         try {
-            ctx.auth.register(form);
+            ctx.auth.register(form, guardian);
             Ui.info("Your account is ready. Sign in with your school ID.");
             onDone.run();
         } catch (ServiceException e) {
             error.setText(e.getMessage());
-            show(0);
+            show(e.getMessage().toLowerCase(Locale.ROOT).contains("guardian") ? 1 : 0);
         }
     }
 

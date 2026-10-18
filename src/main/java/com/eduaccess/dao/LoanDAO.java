@@ -67,6 +67,12 @@ public final class LoanDAO {
                 + " ORDER BY l.due_date", List.of(userId));
     }
 
+    /** Every loan of one borrower, open and returned, newest first. Used for the My Loans history. */
+    public List<LoanDetail> getLoanHistoryByUser(Connection c, long userId) throws SQLException {
+        return queryDetails(c, DETAIL_SELECT + " WHERE l.borrower_id = ? ORDER BY l.borrow_date DESC, l.loan_id DESC",
+                List.of(userId));
+    }
+
     public List<LoanDetail> getOverdueLoans(Connection c) throws SQLException {
         return queryDetails(c, DETAIL_SELECT + " WHERE l.status = 'Overdue' ORDER BY l.due_date", List.of());
     }

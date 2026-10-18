@@ -64,6 +64,30 @@ class LoanServiceTest {
     }
 
     @Test
+    void aStudentCanHoldAtMostThreeLoans() {
+        User student = student("2026-SHS-0001");
+        for (int i = 0; i < LoanPolicy.DEFAULT_MAX_OPEN_LOANS; i++) {
+            loans.borrow(student, availableItem(student), 7, MONDAY);
+        }
+        long fourth = availableItem(student);
+
+        assertThrows(ServiceException.class, () -> loans.borrow(student, fourth, 7, MONDAY));
+        assertEquals(ItemStatus.AVAILABLE, inventory.find(fourth).status());
+    }
+
+    @Test
+    void returningALoanFreesAPlaceUnderTheLimit() {
+        User student = student("2026-SHS-0001");
+        long first = loans.borrow(student, availableItem(student), 7, MONDAY).id();
+        loans.borrow(student, availableItem(student), 7, MONDAY);
+        loans.borrow(student, availableItem(student), 7, MONDAY);
+        loans.returnItem(first, MONDAY.plusDays(1));
+
+        loans.borrow(student, availableItem(student), 7, MONDAY.plusDays(1));
+        assertEquals(4, loans.history(student, MONDAY.plusDays(1)).size());
+    }
+
+    @Test
     void anItemCannotBeBorrowedTwice() {
         User first = student("2026-SHS-0001");
         User second = student("2026-SHS-0002");

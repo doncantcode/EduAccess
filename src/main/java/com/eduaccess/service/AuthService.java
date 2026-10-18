@@ -42,10 +42,25 @@ public final class AuthService {
         }
     }
 
-    /** Creates a student account from the three-step wizard. The password array is wiped afterwards. */
+    /** Creates a student account with no guardian consent: for students 18 or older. */
     public User register(RegistrationForm form) {
+        return register(form, null);
+    }
+
+    /**
+     * Creates a student account from the three-step wizard. Learners under 18 need a guardian's consent
+     * (RA 10173): Elementary and Junior High always, Senior High and College when the student says so by passing
+     * a consent. The password array is wiped afterwards.
+     */
+    public User register(RegistrationForm form, GuardianConsent guardian) {
         try {
             validate(form);
+            if (guardian == null && alwaysMinor(form.level())) {
+                throw new ServiceException("Learners under 18 need a parent's or guardian's consent to register.");
+            }
+            if (guardian != null) {
+                validate(guardian);
+            }
             String schoolId = clean(form.schoolId());
             String hash = PasswordHasher.hash(form.password());
             NewUser account = new NewUser(
@@ -63,6 +78,10 @@ public final class AuthService {
                     throw new ServiceException("This school ID is already registered.");
                 }
                 long id = users.registerUser(c, account);
+                if (guardian != null) {
+                    users.insertGuardianConsent(c, id, guardian.name().strip(), guardian.relationship().strip(),
+                            guardian.contactNumber().strip());
+                }
                 return users.getProfile(c, id).orElseThrow();
             });
         } finally {
@@ -113,6 +132,32 @@ public final class AuthService {
         }
     }
 
+    /** Elementary and Junior High students are always under 18. */
+    public static boolean alwaysMinor(EducationLevel level) {
+        return level == EducationLevel.ELEMENTARY || level == EducationLevel.JHS;
+    }
+
+    /** True when the student registered with a guardian's consent, meaning they are under 18. */
+    public boolean isMinor(User user) {
+        return Sql.read(db, c -> users.isMinor(c, user.id()));
+    }
+
+    private static void validate(GuardianConsent g) {
+        if (g.name() == null || g.name().isBlank()) {
+            throw new ServiceException("Enter your parent's or guardian's full name.");
+        }
+        if (g.relationship() == null || g.relationship().isBlank()) {
+            throw new ServiceException("Choose how the guardian is related to you.");
+        }
+        String digits = g.contactNumber() == null ? "" : g.contactNumber().replaceAll("[\\s()+-]", "");
+        if (!digits.matches("\\d{7,13}")) {
+            throw new ServiceException("Enter the guardian's mobile or phone number, for example 0917 123 4567.");
+        }
+        if (!g.consented()) {
+            throw new ServiceException("Your parent or guardian must agree before you can register.");
+        }
+    }
+
     /** Grade range for K-12 levels, year range for College. */
     static int[] yearRange(EducationLevel level) {
         return switch (level) {
@@ -129,6 +174,10 @@ public final class AuthService {
 
     private static String blankToNull(String text) {
         return text == null || text.isBlank() ? null : text.strip();
+    }
+
+    /** A parent's or guardian's consent for a learner under 18, collected by the registration wizard. */
+    public record GuardianConsent(String name, String relationship, String contactNumber, boolean consented) {
     }
 
     /** The wizard's collected values. The password is cleared once the account is saved. */

@@ -164,3 +164,40 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_offers_one_live_per_owner
 CREATE INDEX IF NOT EXISTS ix_requests_status ON rental_requests (status);
 CREATE INDEX IF NOT EXISTS ix_offers_request ON rental_offers (request_id);
 CREATE INDEX IF NOT EXISTS ix_offers_owner ON rental_offers (owner_id);
+
+-- Guardian consent for learners under 18 (RA 10173, the Data Privacy Act). Elementary and Junior High students
+-- always need it, and Senior High or College students who say they are under 18 too. A row here also marks the
+-- account as a minor, so the student cannot offer items for Library Rental Requests.
+CREATE TABLE IF NOT EXISTS guardian_consents (
+    user_id        INTEGER PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
+    guardian_name  TEXT    NOT NULL,
+    relationship   TEXT    NOT NULL,
+    contact_number TEXT    NOT NULL,
+    consented_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Campus announcements posted by library staff. Shown on the dashboard until expires_on (inclusive)
+-- or until staff remove them.
+CREATE TABLE IF NOT EXISTS announcements (
+    announcement_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    posted_by       INTEGER NOT NULL REFERENCES users (user_id) ON DELETE RESTRICT,
+    title           TEXT    NOT NULL,
+    body            TEXT    NOT NULL,
+    posted_on       TEXT    NOT NULL,
+    expires_on      TEXT,
+    removed         INTEGER NOT NULL DEFAULT 0 CHECK (removed IN (0, 1)),
+    CHECK (expires_on IS NULL OR expires_on >= posted_on)
+);
+
+-- One saved, unsent donation form per student ("Save draft"). levels is a comma-separated list of levels.
+CREATE TABLE IF NOT EXISTS donation_drafts (
+    user_id       INTEGER PRIMARY KEY REFERENCES users (user_id) ON DELETE CASCADE,
+    category      TEXT,
+    title         TEXT,
+    brand_model   TEXT,
+    condition     TEXT,
+    levels        TEXT,
+    dropoff_point TEXT,
+    photo_path    TEXT,
+    saved_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);

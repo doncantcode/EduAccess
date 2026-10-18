@@ -54,6 +54,7 @@ final class RentalRequestsView {
     private final ToggleGroup chips = new ToggleGroup();
     private List<RentalRequest> requests = List.of();
     private List<RentalOffer> myOffers = List.of();
+    private boolean canOffer;
 
     RentalRequestsView(AppContext ctx, AppShell shell) {
         this.ctx = ctx;
@@ -68,6 +69,7 @@ final class RentalRequestsView {
     // ----- Student side ----------------------------------------------------------------------------------------
 
     private Node studentBoard(User user) {
+        canOffer = ctx.rentals.canOffer(user);
         requests = ctx.rentals.openRequests(today);
         myOffers = ctx.rentals.myOffers(user);
 
@@ -159,7 +161,7 @@ final class RentalRequestsView {
             }
             footer = new VBox(8, yours, row);
             card.getStyleClass().add("request-mine");
-        } else if (!RentalService.mayOffer(ctx.session.require())) {
+        } else if (!canOffer) {
             Label rule = Ui.muted("Offers are open to students 18 or older.");
             rule.getStyleClass().add("small");
             footer = rule;

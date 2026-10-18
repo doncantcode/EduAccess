@@ -52,6 +52,7 @@ final class AdminDashboardView {
                         () -> AdminForms.recordBorrow(ctx, () -> shell.go(Screen.DASHBOARD))),
                 action("Review donations", "button-secondary", () -> shell.go(Screen.INVENTORY)));
         page.getChildren().add(Ui.card(Ui.section("Quick actions"), actions));
+        page.getChildren().add(AnnouncementViews.staffCard(ctx, () -> shell.go(Screen.DASHBOARD)));
         return page;
     }
 

@@ -3,6 +3,7 @@ package com.eduaccess.service;
 import com.eduaccess.dao.RentalDAO;
 import com.eduaccess.dao.RentalDAO.NewOffer;
 import com.eduaccess.dao.RentalDAO.NewRequest;
+import com.eduaccess.dao.UserDAO;
 import com.eduaccess.db.DatabaseManager;
 import com.eduaccess.model.EducationLevel;
 import com.eduaccess.model.ItemCondition;
@@ -40,6 +41,7 @@ public final class RentalService {
 
     private final DatabaseManager db;
     private final RentalDAO rentals;
+    private final UserDAO users = new UserDAO();
 
     public RentalService(DatabaseManager db, RentalDAO rentals) {
         this.db = db;
@@ -195,6 +197,11 @@ public final class RentalService {
                 && user.educationLevel() != EducationLevel.JHS;
     }
 
+    /** Whether this user may offer items: a student who is not Elementary, Junior High or registered as a minor. */
+    public boolean canOffer(User user) {
+        return mayOffer(user) && !Sql.read(db, c -> users.isMinor(c, user.id()));
+    }
+
     /** A student offers one of their items for the library to rent. */
     public long offer(User owner, long requestId, OfferForm form, LocalDate today) {
         if (owner.role() != Role.STUDENT) {
@@ -217,6 +224,9 @@ public final class RentalService {
             throw new ServiceException("Please confirm you can bring the item to the library and collect it after.");
         }
         return Sql.write(db, c -> {
+            if (users.isMinor(c, owner.id())) {
+                throw new ServiceException(AGE_RULE + " Your account was registered with a guardian's consent.");
+            }
             RentalRequest request = requireRequest(c, requestId);
             if (!request.acceptsOffers(today)) {
                 throw new ServiceException("This request is no longer taking offers.");

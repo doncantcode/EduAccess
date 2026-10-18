@@ -14,14 +14,14 @@ src/main/resources/
 src/main/java/com/eduaccess/
   EduAccessApp.java                  JavaFX entry point: prepares the database, opens the Login screen
   ui/                                Screens, the BorderPane shell (AppShell), dialogs (AdminForms, RentalDialogs), Icons, Lang
-  service/                           Business rules: LoanService, InventoryService, RentalService, AuthService, DigitalLibraryService,
+  service/                           Business rules: LoanService, InventoryService, RentalService, AnnouncementService, AuthService, DigitalLibraryService,
                                      UsbService, FileExportService, ReportService, LoanRules, LoanPolicy, Access
-  dao/                               Raw JDBC with parameterised queries: UserDAO, PhysicalItemDAO, LoanDAO, RentalDAO,
+  dao/                               Raw JDBC with parameterised queries: UserDAO, PhysicalItemDAO, LoanDAO, RentalDAO, AnnouncementDAO, DonationDraftDAO, ExportDAO,
                                      DigitalResourceDAO, ReportDAO
   db/                                DatabaseManager (connections, transactions), DatabaseInitializer
   model/                             Records and enums that mirror the schema's CHECK values
   security/PasswordHasher.java       PBKDF2-HMAC-SHA256, JDK only
-src/test/java/...                    68 JUnit tests (rules, hashing, database, services, rentals, admin actions, exports, USB)
+src/test/java/...                    87 JUnit tests (rules, hashing, database, services, rentals, announcements, drafts, exports, USB)
 storage/digital/                     PDFs for the digital library (demo placeholders; admins add more)
 storage/photos/items/                Item photos are copied here (created on first use)
 ```
@@ -67,6 +67,25 @@ The two TEST ONLY accounts are exceptions to the 8-character password rule. Remo
 - **Physical Hub → + Add item**, **Inventory & Approval → All items → + Add item**, or the dashboard button: adds library stock. It is available straight away.
 - **Digital Library → + Add resource**, or the dashboard button: copies a PDF into `storage/digital/` and adds it to the index. The source and license are required, and College files go in the College repository only.
 - **Inventory & Approval → Borrowed items → + Record a borrow**, or the dashboard button: records a loan for a student by school ID. Only students can be looked up.
+- **Dashboard → Campus announcements → Post announcement**: a title, a message and an optional end date. Students see it on their dashboard until then. **Remove** hides it but keeps it in the export.
+- **Impact Dashboard → Export reports**: choose a report and an education level, then **Export to Excel (.xlsx)** or **Export as CSV**. **Export full database (.xlsx)** writes every report into one workbook, one sheet each, after an "About" sheet that lists them.
+
+## Exports
+
+| Report | Contents | Level filter applies to |
+|---|---|---|
+| Borrowing log | Every loan, with borrower, dates, extensions, status and fee | Borrower |
+| Overdue loans and fees | Open overdue loans with days late and the fee due | Borrower |
+| Inventory | Every physical item, where it is listed (Physical Library or Hub), levels, donor and status | Item's recommended levels |
+| Donations | Every donated item with donor and review result | Donor |
+| Digital downloads | Every download with student and resource | Student |
+| Digital library index | Every PDF with collection, level, cache state, download count, source and license | Resource |
+| Rental requests | Every request with quantity, approvals, offers, dates, fee and status | (none) |
+| Rental offers | Every offer with owner, condition in and out, fee and payment | Owner |
+| Users | Every account with level, program, and whether a guardian consent is on file | User |
+| Announcements | Every announcement and whether it is showing, ended or removed | (none) |
+
+Excel files keep numbers numeric (pesos as `#,##0.00`), freeze the header row and add filter arrows. CSV files are UTF-8 with a BOM so Excel shows Filipino names correctly. **Passwords and guardian contact details are never exported.** Students can also save their own loans from **My Loans → Download history**.
 
 ## Screens
 
@@ -78,8 +97,10 @@ The window is a `BorderPane`: a navy sidebar on the left, and beside it the head
 | Physical Library | Textbooks, learner modules and reading material (category `Textbooks`) |
 | Physical Hub | Equipment only: calculators, laptops and tablets, lab and study kits. No rooms or facilities |
 | Library Rental Requests | Students: the request board with **Offer Item for Rent** and "Your offers". Staff: **Create New Rental Request**, review queue, check-in and return |
-| Donate an Item | Permanent gifts only, with a live listing preview |
-| My Loans, Digital Library, AI Study Assistant | As before |
+| Donate an Item | Permanent gifts only, with a live listing preview and **Save draft** |
+| My Loans | Current loans (up to 3 at a time) and History tabs, **Download history**, **How to return** |
+| Digital Library | As before |
+| Impact Dashboard (staff) | Metrics for a date range, most requested subjects, resource use by education level, recent activity, and the export panel |
 
 Physical Library and Library Rental Requests are two tabs of one page; each also has its own sidebar entry.
 
@@ -121,7 +142,12 @@ The library posts what it needs to rent for a short time (a projector for a fair
 | Only students 18 or older may offer items for rent | A rental is an agreement with the owner, and RA 10173 asks for care with minors' data. Enforced in `RentalService` and at check-in. |
 | The Physical Hub has no rooms or facilities | Out of scope. It lists equipment only. |
 | `styles.css` replaces `eduaccess.css` | Flat cards, a full control restyle and keyboard focus rings. `:focus-visible` and `:focus-within` need JavaFX 19 or later (the build uses 21). |
-| The EN/FIL toggle translates the sidebar and header only | Screen content is still English. The Filipino labels should be checked by a native speaker. |
+| The EN/FIL toggle translates the sidebar, the header, and every screen's headings, section titles, subtitles and metric labels | Buttons, form labels and messages are still English. The Filipino wording should be checked by a native speaker. |
+| At most 3 open loans per student | `LoanPolicy.maxOpenLoans`, enforced in `LoanService.borrow`. Change the number in `LoanPolicy.DEFAULT`. |
+| Guardian consent at registration (`guardian_consents`) | Elementary and Junior High always, Senior High and College when the student ticks "I am under 18". Stores the guardian's name, relationship and number only. A consent on file also blocks rental offers. |
+| One saved donation draft per student (`donation_drafts`) | Saving again replaces it. Submitting the donation deletes it. The photo is copied only on submit. |
+| Announcements live in their own table and are never deleted | Removing one hides it, so the export keeps a record. |
+| Exports are written by one SQL query per report, with the column names as SQL aliases | Adding a report is one query in `ReportService`. |
 | The Physical Hub sorts available items first, or not-available items first | Students asked for an availability sort. |
 | `physical_item_levels` replaces a single level column | The donation form lets a donor tick several levels. |
 | `Rejected` item status | A rejected donation keeps a record. |
@@ -141,13 +167,11 @@ The library posts what it needs to rent for a short time (a projector for a fair
 ## Not built yet
 
 - AI Study Assistant (its screen shows "Feature not available for now").
-- "Save draft" on the donation form, campus announcements, Filipino text for screen content (the toggle covers the sidebar and header).
-- Overdue alerts sent to borrowers, and guardian consent for minors (RA 10173).
-- A limit on loans per student (the design mentions one but gives no number).
+- A notification system (alerts stored per user, overdue reminders sent to borrowers). The header bell lists what needs attention right now, worked out when it opens.
+- Filipino text for buttons, form labels and messages.
 
 ## Open questions
 
-1. How many loans may one student hold at once?
-2. How is guardian consent for minors recorded?
-3. The mockup footers say "H2 Database v2.2", but the app uses SQLite. Update the mockups or the document before submission.
-4. The mockup shows lab kits in "Complete" condition, which is not one of the three conditions in the schema (Like New, Good, Fair).
+1. The limit of 3 open loans per student is a guess. Confirm it with the library.
+2. The mockup footers say "H2 Database v2.2", but the app uses SQLite. Update the mockups or the document before submission.
+3. The mockup shows lab kits in "Complete" condition, which is not one of the three conditions in the schema (Like New, Good, Fair).

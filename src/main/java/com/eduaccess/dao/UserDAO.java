@@ -90,4 +90,30 @@ public final class UserDAO {
                 Jdbc.nullableInt(rs, "year_level"),
                 rs.getString("campus"));
     }
+
+    /** Records a guardian's consent for a learner under 18. The row also marks the account as a minor. */
+    public void insertGuardianConsent(Connection c, long userId, String guardianName, String relationship,
+                                      String contactNumber) throws SQLException {
+        String sql = """
+                INSERT INTO guardian_consents (user_id, guardian_name, relationship, contact_number)
+                VALUES (?, ?, ?, ?)
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, userId);
+            ps.setString(2, guardianName);
+            ps.setString(3, relationship);
+            ps.setString(4, contactNumber);
+            ps.executeUpdate();
+        }
+    }
+
+    /** True when the account has a guardian consent on file, which means the student is under 18. */
+    public boolean isMinor(Connection c, long userId) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement("SELECT 1 FROM guardian_consents WHERE user_id = ?")) {
+            ps.setLong(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
 }

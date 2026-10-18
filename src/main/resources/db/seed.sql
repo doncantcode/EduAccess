@@ -145,3 +145,8 @@ INSERT INTO rental_offers (offer_id, request_id, owner_id, item_name, brand_mode
 (2, 1, 12, 'Mini projector',    'BenQ MS560',       'Comes with a carry bag.',          'Like New', 'I can drop it off after class.', 'Offered',  NULL,   0, NULL, NULL,                                    NULL,   NULL,   NULL,                                     NULL),
 (3, 2, 14, 'Bluetooth speaker', 'JBL Flip 5',       'Fully charged, with USB-C cable.', 'Good',     NULL,                         'Offered',  NULL,   0, NULL, NULL,                                    NULL,   NULL,   NULL,                                     NULL),
 (4, 5, 13, 'Cordless drill',    'Bosch GSR 120-LI', 'Two batteries and a bit set.',     'Good',     NULL,                         'Returned', 100.00, 1, 1,    datetime('now', 'localtime', '-9 days'), 'Good', 'Good', datetime('now', 'localtime', '-6 days'), datetime('now', 'localtime', '-5 days'));
+
+-- Campus announcements, as in the dashboard design.
+INSERT INTO announcements (announcement_id, posted_by, title, body, posted_on, expires_on) VALUES
+(1, 1, 'Donation drive for graduating students', 'Drop off calculators, books and laptops at the Library Counter until the end of the month. Every donation gets a thank-you badge.', date('now', 'localtime', '-2 days'), date('now', 'localtime', '+20 days')),
+(2, 1, 'Library hours during exam week',        'The library stays open until 8 PM from Monday to Friday next week.',                                                                   date('now', 'localtime', '-1 days'), date('now', 'localtime', '+10 days'));

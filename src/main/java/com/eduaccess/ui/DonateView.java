@@ -1,6 +1,7 @@
 package com.eduaccess.ui;
 
 import com.eduaccess.model.Catalog;
+import com.eduaccess.model.DonationDraft;
 import com.eduaccess.model.EducationLevel;
 import com.eduaccess.model.GivingType;
 import com.eduaccess.model.ItemCategory;
@@ -9,11 +10,14 @@ import com.eduaccess.model.User;
 import com.eduaccess.service.InventoryService.DonationForm;
 import com.eduaccess.service.ServiceException;
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -37,6 +41,7 @@ import javafx.scene.layout.VBox;
 final class DonateView {
 
     private static final List<String> DROP_OFF_POINTS = RentalDialogs.DROP_OFF_POINTS;
+    private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
 
     private final AppContext ctx;
     private final AppShell shell;
@@ -87,8 +92,13 @@ final class DonateView {
         VBox side = sidePanel();
 
         configureControls();
+        VBox page = new VBox(18, header, info, new HBox(22, form, side));
+        ctx.inventory.draft(ctx.session.require()).ifPresent(draft -> {
+            restore(draft);
+            page.getChildren().add(2, draftBanner(draft));
+        });
         refreshPreview();
-        return new VBox(18, header, info, new HBox(22, form, side));
+        return page;
     }
 
     // ----- Form sections ---------------------------------------------------------------------------------------
@@ -187,10 +197,69 @@ final class DonateView {
         submit.getStyleClass().add("button-primary");
         submit.setDefaultButton(true);
         submit.setOnAction(event -> submit());
+        Button save = new Button("Save draft");
+        save.getStyleClass().add("button-secondary");
+        save.setOnAction(event -> saveDraft());
         Button reset = new Button("Clear form");
-        reset.getStyleClass().add("button-secondary");
+        reset.getStyleClass().add("button-ghost");
         reset.setOnAction(event -> resetForm());
-        return Ui.row(10, Ui.grow(), reset, submit);
+        return Ui.row(10, reset, Ui.grow(), save, submit);
+    }
+
+    /** Saves the form as it is, even if incomplete. Opening Donate an Item again restores it. */
+    private void saveDraft() {
+        Ui.run(() -> {
+            ctx.inventory.saveDraft(ctx.session.require(), currentForm());
+            shell.go(Screen.DONATE, "Draft saved. It will be here when you come back to Donate an Item.");
+        });
+    }
+
+    private Node draftBanner(DonationDraft draft) {
+        Label text = new Label("Restored your draft from " + Ui.date(draft.savedAt().toLocalDate()) + " "
+                + draft.savedAt().format(TIME) + ".");
+        Hyperlink discard = new Hyperlink("Discard draft");
+        discard.getStyleClass().add("link");
+        discard.setOnAction(event -> Ui.run(() -> {
+            ctx.inventory.discardDraft(ctx.session.require());
+            shell.go(Screen.DONATE);
+        }));
+        HBox banner = Ui.row(8, Icons.INFO.node(18), text, discard);
+        banner.getStyleClass().addAll("banner", "banner-info");
+        return banner;
+    }
+
+    /** Puts a saved draft back into the form. Missing fields keep their defaults. */
+    private void restore(DonationDraft draft) {
+        if (draft.category() != null) {
+            typeGroup.getToggles().stream().filter(t -> t.getUserData() == draft.category()).findFirst()
+                    .ifPresent(t -> t.setSelected(true));
+        }
+        name.setText(draft.title() == null ? "" : draft.title());
+        brand.setText(draft.brandModel() == null ? "" : draft.brandModel());
+        if (draft.condition() != null) {
+            conditionGroup.getToggles().stream().filter(t -> t.getUserData() == draft.condition()).findFirst()
+                    .ifPresent(t -> t.setSelected(true));
+        }
+        levelChips.forEach((level, chip) -> chip.setSelected(draft.levels().contains(level)));
+        if (draft.dropoffPoint() != null && DROP_OFF_POINTS.contains(draft.dropoffPoint())) {
+            dropOff.setValue(draft.dropoffPoint());
+        }
+        if (draft.photoPath() != null && Files.isRegularFile(Path.of(draft.photoPath()))) {
+            photo = Path.of(draft.photoPath());
+            photoLabel.setText(photo.getFileName().toString());
+        }
+    }
+
+    private DonationForm currentForm() {
+        return new DonationForm(
+                name.getText(),
+                brand.getText(),
+                selectedCategory(),
+                selectedCondition(),
+                dropOff.getValue(),
+                selectedLevels(),
+                GivingType.DONATE,
+                photo);
     }
 
     private static Node divider() {
@@ -282,15 +351,7 @@ final class DonateView {
 
     private void submit() {
         User donor = ctx.session.require();
-        DonationForm form = new DonationForm(
-                name.getText(),
-                brand.getText(),
-                selectedCategory(),
-                selectedCondition(),
-                dropOff.getValue(),
-                selectedLevels(),
-                GivingType.DONATE,
-                photo);
+        DonationForm form = currentForm();
         try {
             ctx.inventory.submitDonation(donor, form);
             shell.go(Screen.DONATE, "Thank you! Your donation is waiting for the library check. Bring \""

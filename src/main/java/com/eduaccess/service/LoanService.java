@@ -45,6 +45,11 @@ public final class LoanService {
         return Sql.write(db, c -> {
             PhysicalItem item = items.findById(c, itemId)
                     .orElseThrow(() -> new ServiceException("This item no longer exists."));
+            int limit = rules.policy().maxOpenLoans();
+            if (loans.countOpenByUser(c, borrower.id()) >= limit) {
+                throw new ServiceException("You can borrow up to " + limit + " items at a time. "
+                        + "Return one of your current loans first.");
+            }
             if (item.status() != ItemStatus.AVAILABLE) {
                 throw new ServiceException("This item is " + item.status().dbValue().toLowerCase()
                         + " and cannot be borrowed right now.");
@@ -131,6 +136,12 @@ public final class LoanService {
             }
             return changed;
         });
+    }
+
+    /** Every loan of the user, open and returned, newest first. */
+    public List<LoanDetail> history(User user, LocalDate today) {
+        refreshOverdue(today);
+        return Sql.read(db, c -> loans.getLoanHistoryByUser(c, user.id()));
     }
 
     public List<LoanDetail> myLoans(User user, LocalDate today) {

@@ -19,6 +19,7 @@ import com.eduaccess.model.RentalRequest;
 import com.eduaccess.model.RentalRequestStatus;
 import com.eduaccess.model.Role;
 import com.eduaccess.model.User;
+import com.eduaccess.service.AuthService.GuardianConsent;
 import com.eduaccess.service.AuthService.RegistrationForm;
 import com.eduaccess.service.RentalService.OfferForm;
 import com.eduaccess.service.RentalService.RequestForm;
@@ -133,11 +134,24 @@ class RentalServiceTest {
     void juniorHighAndElementaryStudentsCannotOffer() {
         long id = request(1, ItemCondition.FAIR);
         User juniorHigh = auth.register(new RegistrationForm("2026-JHS-0009", "Young Student",
-                "Password1!".toCharArray(), EducationLevel.JHS, null, 9, "Main Campus", Intention.BOTH));
+                "Password1!".toCharArray(), EducationLevel.JHS, null, 9, "Main Campus", Intention.BOTH), GUARDIAN);
 
         assertFalse(RentalService.mayOffer(juniorHigh));
         assertThrows(ServiceException.class, () -> rentals.offer(juniorHigh, id, offer(ItemCondition.GOOD), TODAY));
     }
+
+    @Test
+    void aSeniorHighStudentRegisteredAsAMinorCannotOffer() {
+        long id = request(1, ItemCondition.FAIR);
+        User minor = auth.register(new RegistrationForm("2026-SHS-0777", "Under Eighteen", "Password1!".toCharArray(),
+                EducationLevel.SHS, "STEM", 11, "Main Campus", Intention.BOTH), GUARDIAN);
+
+        assertFalse(rentals.canOffer(minor));
+        assertThrows(ServiceException.class, () -> rentals.offer(minor, id, offer(ItemCondition.GOOD), TODAY));
+    }
+
+    private static final GuardianConsent GUARDIAN =
+            new GuardianConsent("Maria Santos", "Mother", "0917 123 4567", true);
 
     @Test
     void checkInRequiresTheStaffIdCheck() {

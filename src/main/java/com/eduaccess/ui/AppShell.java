@@ -8,7 +8,6 @@ import com.eduaccess.model.RentalOffer;
 import com.eduaccess.model.RentalRequest;
 import com.eduaccess.model.Role;
 import com.eduaccess.model.User;
-import com.eduaccess.service.RentalService;
 import com.eduaccess.service.ServiceException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -323,6 +322,7 @@ public final class AppShell {
             if (chosen != Lang.current()) {
                 Lang.set(chosen);
                 rebuildChrome();
+                go(current); // redraw the screen in the new language
             }
         });
         HBox toggle = new HBox(en, fil);
@@ -444,7 +444,7 @@ public final class AppShell {
                         Screen.RENTAL_REQUESTS));
             }
         }
-        int open = RentalService.mayOffer(user) ? ctx.rentals.openRequests(today).size() : 0;
+        int open = ctx.rentals.canOffer(user) ? ctx.rentals.openRequests(today).size() : 0;
         if (open > 0) {
             list.add(new Notice("The library needs " + open + (open == 1 ? " item" : " items"),
                     "Offer something you own for a short rental.", Screen.RENTAL_REQUESTS));

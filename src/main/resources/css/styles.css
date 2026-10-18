@@ -1273,6 +1273,62 @@
     -fx-padding: 16 0 0 0;
 }
 
+/* Charts: flat bars in the palette, light grid lines, no chart chrome. */
+.chart {
+    -fx-padding: 4 0 0 0;
+}
+
+.chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+.chart-vertical-grid-lines {
+    -fx-stroke: transparent;
+}
+
+.chart-horizontal-grid-lines {
+    -fx-stroke: -ea-line;
+}
+
+.chart-alternative-row-fill {
+    -fx-fill: transparent;
+}
+
+.axis {
+    -fx-tick-label-fill: -ea-muted;
+    -fx-tick-label-font-size: 11px;
+}
+
+.axis-tick-mark,
+.axis-minor-tick-mark {
+    -fx-stroke: transparent;
+}
+
+.chart-bar {
+    -fx-background-radius: 4 4 0 0;
+}
+
+.default-color0.chart-bar { -fx-bar-fill: #2563eb; }
+.default-color1.chart-bar { -fx-bar-fill: #0d9488; }
+.default-color0.chart-legend-item-symbol { -fx-background-color: #2563eb; -fx-background-radius: 3; }
+.default-color1.chart-legend-item-symbol { -fx-background-color: #0d9488; -fx-background-radius: 3; }
+
+.chart-legend {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+}
+
+.chart-legend-item {
+    -fx-text-fill: -ea-ink-2;
+    -fx-font-size: 12px;
+}
+
+/* Recent activity rows */
+.activity-row {
+    -fx-padding: 10 0 10 0;
+    -fx-border-color: transparent transparent -ea-line transparent;
+}
+
 /* ===== 11. Dialogs ========================================================================================== */
 
 .dialog-pane {

@@ -1,8 +1,10 @@
 package com.eduaccess.service;
 
+import com.eduaccess.dao.DonationDraftDAO;
 import com.eduaccess.dao.ItemFilter;
 import com.eduaccess.dao.PhysicalItemDAO;
 import com.eduaccess.db.DatabaseManager;
+import com.eduaccess.model.DonationDraft;
 import com.eduaccess.model.EducationLevel;
 import com.eduaccess.model.GivingType;
 import com.eduaccess.model.ItemCategory;
@@ -16,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,6 +30,7 @@ public final class InventoryService {
 
     private final DatabaseManager db;
     private final PhysicalItemDAO items;
+    private final DonationDraftDAO drafts = new DonationDraftDAO();
 
     public InventoryService(DatabaseManager db, PhysicalItemDAO items) {
         this.db = db;
@@ -48,7 +52,42 @@ public final class InventoryService {
                 ItemStatus.PENDING,
                 form.givingType(),
                 List.copyOf(form.levels()));
-        return Sql.write(db, c -> items.insertItem(c, item));
+        return Sql.write(db, c -> {
+            long id = items.insertItem(c, item);
+            drafts.delete(c, donor.id());
+            return id;
+        });
+    }
+
+    /**
+     * Saves the donation form as it is, even if incomplete, so the student can finish it later. The photo is
+     * remembered by its path and copied only on submit.
+     */
+    public void saveDraft(User donor, DonationForm form) {
+        DonationDraft draft = new DonationDraft(
+                form.category(),
+                blankToNull(form.title()),
+                blankToNull(form.brandModel()),
+                form.condition(),
+                form.levels() == null ? List.of() : List.copyOf(form.levels()),
+                form.pickupPoint(),
+                form.photo() == null ? null : form.photo().toString(),
+                null);
+        Sql.write(db, c -> {
+            drafts.save(c, donor.id(), draft);
+            return null;
+        });
+    }
+
+    public Optional<DonationDraft> draft(User donor) {
+        return Sql.read(db, c -> drafts.find(c, donor.id()));
+    }
+
+    public void discardDraft(User donor) {
+        Sql.write(db, c -> {
+            drafts.delete(c, donor.id());
+            return null;
+        });
     }
 
     /** An admin adds library stock. It is available straight away, because the admin is the library. */
