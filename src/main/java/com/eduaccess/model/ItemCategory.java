@@ -17,4 +17,9 @@ public enum ItemCategory implements DbCoded {
     public String dbValue() {
         return dbValue;
     }
+
+    /** Textbooks are listed in the Physical Library. Everything else is equipment in the Physical Hub. */
+    public Catalog catalog() {
+        return this == TEXTBOOKS ? Catalog.LIBRARY : Catalog.HUB;
+    }
 }

@@ -3,6 +3,7 @@ package com.eduaccess.ui;
 import com.eduaccess.dao.DigitalResourceDAO;
 import com.eduaccess.dao.LoanDAO;
 import com.eduaccess.dao.PhysicalItemDAO;
+import com.eduaccess.dao.RentalDAO;
 import com.eduaccess.dao.ReportDAO;
 import com.eduaccess.dao.UserDAO;
 import com.eduaccess.db.DatabaseManager;
@@ -13,6 +14,7 @@ import com.eduaccess.service.InventoryService;
 import com.eduaccess.service.LoanPolicy;
 import com.eduaccess.service.LoanRules;
 import com.eduaccess.service.LoanService;
+import com.eduaccess.service.RentalService;
 import com.eduaccess.service.ReportService;
 import com.eduaccess.service.Session;
 import com.eduaccess.service.UsbService;
@@ -27,6 +29,7 @@ public final class AppContext {
     final LoanService loans;
     final DigitalLibraryService library;
     final ReportService reports;
+    final RentalService rentals;
     final FileExportService exporter = new FileExportService();
     final UsbService usb = new UsbService();
 
@@ -40,5 +43,6 @@ public final class AppContext {
         this.loans = new LoanService(db, loanDao, items, new LoanRules(LoanPolicy.DEFAULT));
         this.library = new DigitalLibraryService(db, resources, Path.of("storage", "digital"));
         this.reports = new ReportService(db, loanDao, items, resources, new ReportDAO());
+        this.rentals = new RentalService(db, new RentalDAO());
     }
 }

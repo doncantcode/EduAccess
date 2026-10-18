@@ -27,7 +27,7 @@ public class EduAccessApp extends Application {
 
     private static final Path DB_FILE = Path.of("data", "eduaccess.db");
     private static final String LOGIN_FXML = "/fxml/login.fxml";
-    private static final String STYLESHEET = "/css/eduaccess.css";
+    private static final String STYLESHEET = "/css/styles.css";
 
     private Stage primaryStage;
     private Scene scene;

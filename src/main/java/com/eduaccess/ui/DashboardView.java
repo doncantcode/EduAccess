@@ -5,11 +5,13 @@ import com.eduaccess.model.ItemStatus;
 import com.eduaccess.model.LoanDetail;
 import com.eduaccess.model.LoanStatus;
 import com.eduaccess.model.PhysicalItem;
+import com.eduaccess.model.RentalRequest;
 import com.eduaccess.model.User;
 import com.eduaccess.service.ReportService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -73,7 +75,9 @@ final class DashboardView {
 
         VBox available = availableCard(user);
         HBox.setHgrow(available, Priority.ALWAYS);
-        page.getChildren().add(new HBox(16, available, quickActions()));
+        VBox side = new VBox(16, quickActions());
+        libraryNeedsCard(today).ifPresent(side.getChildren()::add);
+        page.getChildren().add(new HBox(16, available, side));
         return page;
     }
 
@@ -99,16 +103,38 @@ final class DashboardView {
                     gap, Ui.itemBadge(item.status()), view));
         }
         return Ui.card(Ui.section("Available for your level"),
-                Ui.muted("Items from the physical hub that match your education level."), list);
+                Ui.muted("Books and equipment that match your education level."), list);
+    }
+
+    /** The nearest open rental request, so students notice when the library needs something. */
+    private Optional<VBox> libraryNeedsCard(LocalDate today) {
+        List<RentalRequest> open = ctx.rentals.openRequests(today);
+        if (open.isEmpty()) {
+            return Optional.empty();
+        }
+        RentalRequest next = open.get(0);
+        Label title = new Label(next.title());
+        title.getStyleClass().add("item-title");
+        title.setWrapText(true);
+        Label detail = Ui.muted("For " + next.purpose() + ". " + RentalRequestsView.feeText(next.rentalFee()) + ".");
+        detail.getStyleClass().add("small");
+        Button see = new Button("See " + open.size() + (open.size() == 1 ? " request" : " requests"));
+        see.getStyleClass().addAll("button-primary", "button-block");
+        see.setOnAction(event -> shell.go(Screen.RENTAL_REQUESTS));
+        VBox card = Ui.card(Ui.section("The library needs your help"),
+                Ui.row(12, Ui.rentalArt(next.category(), 44, 44), new VBox(2, title, detail)), see);
+        card.setPrefWidth(300);
+        card.setMaxWidth(300);
+        return Optional.of(card);
     }
 
     private VBox quickActions() {
         FlowPane buttons = new FlowPane(10, 10);
         buttons.getChildren().addAll(
-                quickButton("Browse items", Screen.CATALOG),
+                quickButton("Books", Screen.PHYSICAL_LIBRARY),
+                quickButton("Equipment", Screen.CATALOG),
                 quickButton("Donate", Screen.DONATE),
-                quickButton("E-library", Screen.LIBRARY),
-                quickButton("Copy to USB", Screen.LIBRARY));
+                quickButton("E-library", Screen.LIBRARY));
         VBox card = Ui.card(Ui.section("Quick actions"), buttons);
         card.setMinWidth(300);
         card.setPrefWidth(300);

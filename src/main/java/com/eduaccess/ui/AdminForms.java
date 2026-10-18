@@ -235,8 +235,7 @@ final class AdminForms {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle(title);
         dialog.setHeaderText(null);
-        dialog.getDialogPane().getStylesheets().add(
-                AdminForms.class.getResource("/css/eduaccess.css").toExternalForm());
+        Ui.style(dialog);
         dialog.getDialogPane().setPadding(new Insets(20, 24, 12, 24));
         return dialog;
     }

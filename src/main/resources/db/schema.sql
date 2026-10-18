@@ -97,3 +97,69 @@ CREATE TABLE IF NOT EXISTS digital_downloads (
 );
 CREATE INDEX IF NOT EXISTS ix_downloads_user ON digital_downloads (user_id);
 CREATE INDEX IF NOT EXISTS ix_downloads_resource ON digital_downloads (resource_id);
+
+-- Library Rental Requests. The library posts what it needs to rent for a short time, for example a projector
+-- for a workshop. Students answer with an offer of their own item. Offered items never enter physical_items,
+-- because they belong to the student and are not lent to anyone else.
+-- Request lifecycle: Open, then Filled (enough offers approved, or offers closed with at least one approved),
+-- then Completed (every checked-in item handed back). Open becomes Expired when offers close with none approved.
+-- Staff can cancel any request that is not Completed.
+CREATE TABLE IF NOT EXISTS rental_requests (
+    request_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_by      INTEGER NOT NULL REFERENCES users (user_id) ON DELETE RESTRICT,
+    title           TEXT    NOT NULL,
+    description     TEXT    NOT NULL,
+    purpose         TEXT    NOT NULL,
+    category        TEXT    NOT NULL CHECK (category IN ('Tech', 'Equipment', 'Tools', 'Display', 'Books & Media', 'Other')),
+    quantity_needed INTEGER NOT NULL DEFAULT 1 CHECK (quantity_needed BETWEEN 1 AND 20),
+    min_condition   TEXT    NOT NULL DEFAULT 'Fair' CHECK (min_condition IN ('Like New', 'Good', 'Fair')),
+    offers_close_on TEXT    NOT NULL,
+    needed_from     TEXT    NOT NULL,
+    needed_until    TEXT    NOT NULL,
+    rental_fee      NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (rental_fee >= 0),
+    dropoff_point   TEXT    NOT NULL,
+    status          TEXT    NOT NULL DEFAULT 'Open'
+                    CHECK (status IN ('Open', 'Filled', 'Completed', 'Cancelled', 'Expired')),
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    CHECK (offers_close_on <= needed_from),
+    CHECK (needed_until >= needed_from)
+);
+
+-- One student's answer to a request. rental_fee is per item for the whole period, and agreed_fee copies it
+-- when staff approve the offer. condition_in and condition_out are recorded at the counter.
+-- Offer lifecycle: Offered, Approved, Checked-In, Returned. Side exits: Declined (staff, or automatic when the
+-- request fills, closes or is cancelled), Withdrawn (the student, before check-in), Cancelled (request cancelled
+-- after approval). A checked-in item always ends as Returned.
+CREATE TABLE IF NOT EXISTS rental_offers (
+    offer_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id     INTEGER NOT NULL REFERENCES rental_requests (request_id) ON DELETE RESTRICT,
+    owner_id       INTEGER NOT NULL REFERENCES users (user_id) ON DELETE RESTRICT,
+    item_name      TEXT    NOT NULL,
+    brand_model    TEXT,
+    description    TEXT,
+    condition      TEXT    NOT NULL CHECK (condition IN ('Like New', 'Good', 'Fair')),
+    photo_path     TEXT,
+    owner_note     TEXT,
+    status         TEXT    NOT NULL DEFAULT 'Offered'
+                   CHECK (status IN ('Offered', 'Approved', 'Checked-In', 'Returned', 'Declined', 'Withdrawn', 'Cancelled')),
+    agreed_fee     NUMERIC(10, 2) CHECK (agreed_fee >= 0),
+    fee_paid       INTEGER NOT NULL DEFAULT 0 CHECK (fee_paid IN (0, 1)),
+    decided_by     INTEGER REFERENCES users (user_id),
+    decline_reason TEXT,
+    condition_in   TEXT    CHECK (condition_in IN ('Like New', 'Good', 'Fair')),
+    condition_out  TEXT    CHECK (condition_out IN ('Like New', 'Good', 'Fair')),
+    damage_note    TEXT,
+    offered_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+    decided_at     TEXT,
+    checked_in_at  TEXT,
+    returned_at    TEXT,
+    CHECK ((status IN ('Checked-In', 'Returned')) = (checked_in_at IS NOT NULL)),
+    CHECK ((status = 'Returned') = (returned_at IS NOT NULL))
+);
+
+-- One live offer per student per request. The database refuses a second one, not only the UI.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_offers_one_live_per_owner
+    ON rental_offers (request_id, owner_id) WHERE status IN ('Offered', 'Approved', 'Checked-In');
+CREATE INDEX IF NOT EXISTS ix_requests_status ON rental_requests (status);
+CREATE INDEX IF NOT EXISTS ix_offers_request ON rental_offers (request_id);
+CREATE INDEX IF NOT EXISTS ix_offers_owner ON rental_offers (owner_id);

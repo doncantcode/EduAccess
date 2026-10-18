@@ -4,6 +4,9 @@ import com.eduaccess.model.EducationLevel;
 import com.eduaccess.model.ItemCategory;
 import com.eduaccess.model.ItemStatus;
 import com.eduaccess.model.LoanStatus;
+import com.eduaccess.model.OfferStatus;
+import com.eduaccess.model.RentalCategory;
+import com.eduaccess.model.RentalRequestStatus;
 import com.eduaccess.service.ServiceException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -13,6 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -21,23 +25,42 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.shape.Circle;
 
 /** Shared labels, badges, dialogs and formatting for the screens. */
 final class Ui {
 
+    /** The app stylesheet. The main scene uses it, and so must every dialog, which gets a scene of its own. */
+    static final String STYLESHEET = "/css/styles.css";
+
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+    private static final DateTimeFormatter SHORT_DATE = DateTimeFormatter.ofPattern("MMM d", Locale.ENGLISH);
 
     private Ui() {
     }
 
     static String date(LocalDate value) {
         return value == null ? "-" : value.format(DATE);
+    }
+
+    /** "Oct 24 – Oct 27, 2026", or a single date when both ends are the same day. */
+    static String dateRange(LocalDate from, LocalDate to) {
+        if (from.equals(to)) {
+            return date(from);
+        }
+        return from.format(SHORT_DATE) + " – " + date(to);
     }
 
     static String money(BigDecimal amount) {
@@ -67,10 +90,34 @@ final class Ui {
         return String.format(Locale.ENGLISH, "%.1f MB", megabytes);
     }
 
+    /** A status badge: a coloured dot plus a text label, so colour is never the only signal. */
     static Label badge(String text, String variant) {
         Label label = new Label(text);
+        Circle dot = new Circle(3.5);
+        dot.getStyleClass().add("badge-dot");
+        label.setGraphic(dot);
         label.getStyleClass().addAll("badge", "badge-" + variant);
+        label.setMinWidth(Region.USE_PREF_SIZE);
         return label;
+    }
+
+    static Label requestBadge(RentalRequestStatus status) {
+        String text = status == RentalRequestStatus.OPEN ? "Open for offers" : status.dbValue();
+        return badge(text, status.dbValue().toLowerCase(Locale.ROOT));
+    }
+
+    /** Offer statuses as students read them. */
+    static Label offerBadge(OfferStatus status) {
+        String text = switch (status) {
+            case OFFERED -> "Waiting for review";
+            case APPROVED -> "Approved";
+            case CHECKED_IN -> "With the library";
+            case RETURNED -> "Returned to you";
+            case DECLINED -> "Declined";
+            case WITHDRAWN -> "Withdrawn";
+            case CANCELLED -> "Cancelled";
+        };
+        return badge(text, status.dbValue().toLowerCase(Locale.ROOT));
     }
 
     static Label itemBadge(ItemStatus status) {
@@ -113,18 +160,90 @@ final class Ui {
         return label;
     }
 
+    /** A full-width message. kind is danger, warning, info or success. */
     static Label banner(String text, String kind) {
         Label label = new Label(text);
         label.setWrapText(true);
         label.setMaxWidth(Double.MAX_VALUE);
+        label.setMinHeight(Region.USE_PREF_SIZE);
+        Icons icon = switch (kind) {
+            case "danger", "warning" -> Icons.ALERT;
+            case "success" -> Icons.CHECK;
+            default -> Icons.INFO;
+        };
+        label.setGraphic(icon.node(18));
         label.getStyleClass().addAll("banner", "banner-" + kind);
         return label;
+    }
+
+    /** Page title and subtitle on the left, actions on the right. */
+    static HBox pageHeader(String title, String subtitle, Node... actions) {
+        Label heading = heading(title);
+        Label sub = muted(subtitle);
+        sub.getStyleClass().add("subheading");
+        VBox text = new VBox(4, heading, sub);
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        HBox header = new HBox(16, text, gap);
+        header.getChildren().addAll(actions);
+        header.setAlignment(Pos.CENTER_LEFT);
+        return header;
+    }
+
+    static Label fieldLabel(String text) {
+        Label label = new Label(text);
+        label.getStyleClass().add("field-label");
+        return label;
+    }
+
+    /** A form field: bold label above the control. */
+    static VBox labelled(String text, Node control) {
+        return new VBox(6, fieldLabel(text), control);
+    }
+
+    static Region grow() {
+        Region gap = new Region();
+        HBox.setHgrow(gap, Priority.ALWAYS);
+        return gap;
+    }
+
+    /**
+     * A segmented control: one pill per value, exactly one selected. Values that {@code enabled} rejects are shown
+     * but disabled. Read the choice from {@code group.getSelectedToggle().getUserData()}.
+     */
+    static <T> HBox segmented(ToggleGroup group, List<T> values, Function<T, String> text,
+                              T selected, Predicate<T> enabled) {
+        HBox box = new HBox();
+        box.getStyleClass().add("segmented");
+        box.setMaxWidth(Region.USE_PREF_SIZE);
+        for (T value : values) {
+            ToggleButton button = new ToggleButton(text.apply(value));
+            button.getStyleClass().add("segment");
+            button.setUserData(value);
+            button.setToggleGroup(group);
+            button.setDisable(!enabled.test(value));
+            button.setSelected(value.equals(selected));
+            box.getChildren().add(button);
+        }
+        group.selectedToggleProperty().addListener((obs, was, now) -> {
+            if (now == null && was != null) {
+                was.setSelected(true); // a segmented control always has one choice
+            }
+        });
+        return box;
+    }
+
+    /** Applies the app stylesheet to a dialog, which otherwise falls back to the default Modena look. */
+    static void style(Dialog<?> dialog) {
+        DialogPane pane = dialog.getDialogPane();
+        pane.getStylesheets().add(Ui.class.getResource(STYLESHEET).toExternalForm());
+        pane.setGraphic(null);
     }
 
     /** Sizes a table to its rows, so a short table does not show empty rows underneath. */
     static void fitTable(javafx.scene.control.TableView<?> table, int rows) {
         table.setFixedCellSize(48);
-        table.setPrefHeight(rows == 0 ? 160 : Math.min(34 + rows * 48, 560));
+        table.setPrefHeight(rows == 0 ? 160 : Math.min(46 + rows * 48, 570)); // 40px header plus borders
     }
 
     static VBox card(javafx.scene.Node... children) {
@@ -151,12 +270,11 @@ final class Ui {
 
     /** A placeholder image, coloured by category, until real photos are attached. */
     static StackPane art(ItemCategory category, double width, double height) {
-        boolean compact = width < 100;
-        String text = switch (category) {
-            case CALCULATORS -> compact ? "Calc" : "Calculator";
-            case LAPTOPS_TABLETS -> "Laptop";
-            case TEXTBOOKS -> "Book";
-            case LAB_STUDY_KITS -> compact ? "Kit" : "Study kit";
+        Icons icon = switch (category) {
+            case CALCULATORS -> Icons.CALCULATOR;
+            case LAPTOPS_TABLETS -> Icons.LAPTOP;
+            case TEXTBOOKS -> Icons.BOOK;
+            case LAB_STUDY_KITS -> Icons.FLASK;
         };
         String style = switch (category) {
             case CALCULATORS -> "art-calc";
@@ -164,16 +282,28 @@ final class Ui {
             case TEXTBOOKS -> "art-book";
             case LAB_STUDY_KITS -> "art-kit";
         };
-        return sized(new Label(text), style, width, height);
+        return sized(icon, style, width, height);
+    }
+
+    static StackPane rentalArt(RentalCategory category, double width, double height) {
+        Icons icon = switch (category) {
+            case TECH -> Icons.LAPTOP;
+            case EQUIPMENT -> Icons.BOX;
+            case TOOLS -> Icons.FLASK;
+            case DISPLAY -> Icons.LAYERS;
+            case BOOKS_MEDIA -> Icons.BOOK;
+            case OTHER -> Icons.TAG;
+        };
+        return sized(icon, "art-rental", width, height);
     }
 
     static StackPane documentArt(boolean college, double width, double height) {
-        return sized(new Label("PDF"), college ? "art-doc-college" : "art-doc-k12", width, height);
+        return sized(Icons.TABLET, college ? "art-doc-college" : "art-doc-k12", width, height);
     }
 
-    private static StackPane sized(Label label, String style, double width, double height) {
-        label.getStyleClass().add("art-label");
-        StackPane pane = new StackPane(label);
+    private static StackPane sized(Icons icon, String style, double width, double height) {
+        double iconSize = Math.max(18, Math.min(56, Math.min(width, height) * 0.38));
+        StackPane pane = new StackPane(icon.node(iconSize));
         pane.getStyleClass().addAll("item-art", style);
         pane.setMinSize(width, height);
         pane.setPrefSize(width, height);
@@ -184,12 +314,14 @@ final class Ui {
     static void error(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR, message, ButtonType.OK);
         alert.setHeaderText("Please check this");
+        style(alert);
         alert.showAndWait();
     }
 
     static void info(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
         alert.setHeaderText(null);
+        style(alert);
         alert.showAndWait();
     }
 
@@ -197,6 +329,7 @@ final class Ui {
     static boolean confirm(String header, String message) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
         alert.setHeaderText(header);
+        style(alert);
         return alert.showAndWait().filter(button -> button == ButtonType.OK).isPresent();
     }
 

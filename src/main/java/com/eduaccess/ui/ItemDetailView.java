@@ -1,5 +1,6 @@
 package com.eduaccess.ui;
 
+import com.eduaccess.model.Catalog;
 import com.eduaccess.model.GivingType;
 import com.eduaccess.model.ItemStatus;
 import com.eduaccess.model.PhysicalItem;
@@ -38,10 +39,11 @@ final class ItemDetailView {
         User user = ctx.session.require();
         PhysicalItem item = ctx.inventory.find(itemId);
 
-        Button back = new Button("← Back to Physical Hub");
-        back.getStyleClass().add("button-secondary");
-        back.setOnAction(event -> shell.go(Screen.CATALOG));
-        Label crumbs = Ui.muted("Physical Hub  ›  " + item.category().dbValue() + "  ›  " + item.title());
+        Screen home = home(item);
+        Button back = new Button("Back to " + home.label(), Icons.ARROW_LEFT.node(16));
+        back.getStyleClass().add("button-ghost");
+        back.setOnAction(event -> shell.go(home));
+        Label crumbs = Ui.muted(home.label() + "  ›  " + item.category().dbValue() + "  ›  " + item.title());
 
         VBox left = leftColumn(item);
         HBox.setHgrow(left, Priority.ALWAYS);
@@ -152,7 +154,7 @@ final class ItemDetailView {
         Button cancel = new Button("Cancel");
         cancel.getStyleClass().add("button-secondary");
         cancel.setMaxWidth(Double.MAX_VALUE);
-        cancel.setOnAction(event -> shell.go(Screen.CATALOG));
+        cancel.setOnAction(event -> shell.go(home(item)));
 
         Label blocked = Ui.muted(available ? "" : "This item is " + item.status().dbValue().toLowerCase()
                 + " right now and cannot be borrowed.");
@@ -181,5 +183,10 @@ final class ItemDetailView {
 
     private static int selectedDays(ToggleGroup group) {
         return group.getSelectedToggle() == null ? 7 : (Integer) group.getSelectedToggle().getUserData();
+    }
+
+    /** Books go back to the Physical Library, equipment to the Physical Hub. */
+    private static Screen home(PhysicalItem item) {
+        return item.category().catalog() == Catalog.LIBRARY ? Screen.PHYSICAL_LIBRARY : Screen.CATALOG;
     }
 }

@@ -16,4 +16,9 @@ public enum ItemCondition implements DbCoded {
     public String dbValue() {
         return dbValue;
     }
+
+    /** True when this condition is as good as {@code minimum} or better. Constants run from best to worst. */
+    public boolean meets(ItemCondition minimum) {
+        return ordinal() <= minimum.ordinal();
+    }
 }

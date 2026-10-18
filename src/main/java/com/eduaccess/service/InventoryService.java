@@ -133,7 +133,7 @@ public final class InventoryService {
     }
 
     /** Copies a photo into the app folder and returns its relative path, using forward slashes. */
-    private static String copyPhoto(Path photo) {
+    static String copyPhoto(Path photo) {
         if (photo == null) {
             return null;
         }
