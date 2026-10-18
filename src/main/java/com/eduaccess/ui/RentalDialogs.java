@@ -4,6 +4,7 @@ import com.eduaccess.model.ItemCondition;
 import com.eduaccess.model.RentalCategory;
 import com.eduaccess.model.RentalOffer;
 import com.eduaccess.model.RentalRequest;
+import com.eduaccess.service.RentalService;
 import com.eduaccess.service.RentalService.OfferForm;
 import com.eduaccess.service.RentalService.RequestForm;
 import com.eduaccess.service.ServiceException;
@@ -84,6 +85,11 @@ final class RentalDialogs {
         HBox photoRow = new HBox(12, choose, photoName);
         photoRow.getStyleClass().add("photo-drop");
 
+        CheckBox adult = new CheckBox("I am 18 years old or older. I'll bring my school ID, which staff check at "
+                + "hand-over.");
+        adult.setWrapText(true);
+        adult.setMaxWidth(Double.MAX_VALUE);
+        adult.setMinHeight(Region.USE_PREF_SIZE);
         CheckBox agree = new CheckBox("I can bring this item to " + request.dropoffPoint() + " by "
                 + Ui.date(request.neededFrom()) + ", and collect it after " + Ui.date(request.neededUntil()) + ".");
         agree.setWrapText(true);
@@ -99,7 +105,9 @@ final class RentalDialogs {
         form.add(Ui.labelled("Photo (optional)", photoRow), 0, 3, 2, 1);
         form.add(Ui.labelled("Note to the library", note), 0, 4, 2, 1);
 
-        VBox content = new VBox(18, requestSummary(request), form, agree, error);
+        Label ageRule = Ui.banner(RentalService.AGE_RULE + " The library rents your item under an agreement, "
+                + "so the owner must be an adult.", "info");
+        VBox content = new VBox(18, requestSummary(request), ageRule, form, new VBox(10, adult, agree), error);
         content.setPrefWidth(620);
         dialog.getDialogPane().setContent(content);
 
@@ -113,7 +121,8 @@ final class RentalDialogs {
                         : (ItemCondition) condition.getSelectedToggle().getUserData(),
                 photo[0],
                 note.getText(),
-                agree.isSelected()), LocalDate.now()));
+                agree.isSelected(),
+                adult.isSelected()), LocalDate.now()));
         name.requestFocus();
         dialog.showAndWait().filter(button -> button == submit).ifPresent(button -> onSaved.run());
     }
@@ -179,7 +188,7 @@ final class RentalDialogs {
         minimum.setConverter(Converters.coded());
         minimum.setMaxWidth(Double.MAX_VALUE);
         TextField fee = new TextField();
-        fee.setPromptText("0 = no fee");
+        fee.setPromptText("e.g. 150");
         ComboBox<String> dropoff = new ComboBox<>();
         dropoff.getItems().setAll(DROP_OFF_POINTS);
         dropoff.setValue(DROP_OFF_POINTS.get(0));
@@ -216,7 +225,7 @@ final class RentalDialogs {
         form.add(Ui.labelled("Needed until", until), 1, 3);
         form.add(Ui.labelled("Offers close on", closes), 0, 4);
         form.add(Ui.labelled("Minimum condition", minimum), 1, 4);
-        form.add(Ui.labelled("Rental fee per item (₱)", fee), 0, 5);
+        form.add(Ui.labelled("Library pays per item (₱) *", fee), 0, 5);
         form.add(Ui.labelled("Students bring items to", dropoff), 1, 5);
 
         VBox content = new VBox(16, form, preview, error);
@@ -244,7 +253,7 @@ final class RentalDialogs {
         String money;
         try {
             BigDecimal value = parseFee(fee);
-            money = value.signum() == 0 ? "no fee" : Ui.money(value) + " per item";
+            money = value.signum() <= 0 ? "no payment set yet" : Ui.money(value) + " paid per item";
         } catch (ServiceException e) {
             money = "an invalid fee";
         }
@@ -290,16 +299,21 @@ final class RentalDialogs {
         ToggleGroup condition = new ToggleGroup();
         HBox picker = Ui.segmented(condition, Arrays.asList(ItemCondition.values()), RentalDialogs::conditionText,
                 offer.condition(), value -> true);
+        CheckBox idChecked = new CheckBox("I checked " + offer.ownerName() + "'s school ID (" + offer.ownerSchoolId()
+                + ") and they are 18 or older.");
+        idChecked.setWrapText(true);
+        idChecked.setMaxWidth(Double.MAX_VALUE);
+        idChecked.setMinHeight(Region.USE_PREF_SIZE);
         Label error = errorLabel();
         VBox content = new VBox(12,
                 Ui.muted("The student described it as " + offer.condition().dbValue() + ". Record what you see."),
-                Ui.labelled("Condition on arrival", picker), error);
+                Ui.labelled("Condition on arrival", picker), idChecked, error);
         content.setPrefWidth(460);
         dialog.getDialogPane().setContent(content);
         ButtonType confirm = new ButtonType("Check in", ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().setAll(ButtonType.CANCEL, confirm);
         guard(dialog, confirm, error, () -> ctx.rentals.checkIn(ctx.session.require(), offer.id(),
-                (ItemCondition) condition.getSelectedToggle().getUserData()));
+                (ItemCondition) condition.getSelectedToggle().getUserData(), idChecked.isSelected()));
         dialog.showAndWait().filter(button -> button == confirm).ifPresent(button -> onDone.run());
     }
 

@@ -76,7 +76,7 @@ The window is a `BorderPane`: a navy sidebar on the left, and beside it the head
 |---|---|
 | Dashboard | Loans, deadlines, items for your level, and "The library needs your help" when a rental request is open |
 | Physical Library | Textbooks, learner modules and reading material (category `Textbooks`) |
-| Physical Hub | Equipment: calculators, laptops and tablets, lab and study kits |
+| Physical Hub | Equipment only: calculators, laptops and tablets, lab and study kits. No rooms or facilities |
 | Library Rental Requests | Students: the request board with **Offer Item for Rent** and "Your offers". Staff: **Create New Rental Request**, review queue, check-in and return |
 | Donate an Item | Permanent gifts only, with a live listing preview |
 | My Loans, Digital Library, AI Study Assistant | As before |
@@ -85,7 +85,7 @@ Physical Library and Library Rental Requests are two tabs of one page; each also
 
 ## Library Rental Requests
 
-The library posts what it needs to rent for a short time (a projector for a fair, easels for an exhibit). Students offer their own items. Offered items never enter `physical_items`, because they belong to the student and are not lent to anyone else.
+The library posts what it needs to rent for a short time (a projector for a fair, easels for an exhibit) and how much it pays per item. Students 18 or older offer their own items. Offered items never enter `physical_items`, because they belong to the student and are not lent to anyone else.
 
 | Request status | Meaning |
 |---|---|
@@ -103,6 +103,8 @@ The library posts what it needs to rent for a short time (a projector for a fair
 | Returned | Handed back to the owner. Condition and fee payment are recorded |
 | Declined, Withdrawn, Cancelled | Staff said no (or the request filled or closed), the student took it back, or the request was cancelled or the item never arrived |
 
+**Only students 18 or older can offer items.** EduAccess stores no birth date, so the rule has three layers: Elementary and Junior High accounts cannot offer at all (the board says so instead of showing the button), the student ticks "I am 18 years old or older" on the offer, and staff tick "I checked the school ID" before they can check the item in.
+
 `RentalService.refreshDeadlines` brings requests in line with today's date whenever a screen loads, the same way overdue loans are refreshed. A database index allows one live offer per student per request.
 
 ## Decisions
@@ -115,7 +117,9 @@ The library posts what it needs to rent for a short time (a projector for a fair
 | Physical Library and Physical Hub split by category, not by a column | `ItemCategory.catalog()` decides the tab, so no migration is needed. Textbooks are the library, everything else the hub. |
 | Donate an Item no longer offers "Lend" | Donations are permanent. Lending to the library goes through Library Rental Requests. Existing `Lend` rows are kept. |
 | `rental_requests` and `rental_offers` are separate from `physical_items` | A student's item rented by the library is never lent to other students. |
-| Rental fee is per item for the whole rental, and 0 means unpaid | Staff choose. The card then says "No fee · volunteer thank-you". |
+| The library always pays, and staff set the amount | `rental_fee` is required and above zero, per item for the whole rental. Staff record the payment when the item goes back. |
+| Only students 18 or older may offer items for rent | A rental is an agreement with the owner, and RA 10173 asks for care with minors' data. Enforced in `RentalService` and at check-in. |
+| The Physical Hub has no rooms or facilities | Out of scope. It lists equipment only. |
 | `styles.css` replaces `eduaccess.css` | Flat cards, a full control restyle and keyboard focus rings. `:focus-visible` and `:focus-within` need JavaFX 19 or later (the build uses 21). |
 | The EN/FIL toggle translates the sidebar and header only | Screen content is still English. The Filipino labels should be checked by a native speaker. |
 | The Physical Hub sorts available items first, or not-available items first | Students asked for an availability sort. |
@@ -138,8 +142,6 @@ The library posts what it needs to rent for a short time (a projector for a fair
 
 - AI Study Assistant (its screen shows "Feature not available for now").
 - "Save draft" on the donation form, campus announcements, Filipino text for screen content (the toggle covers the sidebar and header).
-- Rooms and spaces in the Physical Hub (it lists equipment only).
-- Guardian consent before a student under 18 offers an item for a rental request.
 - Overdue alerts sent to borrowers, and guardian consent for minors (RA 10173).
 - A limit on loans per student (the design mentions one but gives no number).
 

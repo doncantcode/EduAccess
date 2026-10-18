@@ -4,6 +4,7 @@ import com.eduaccess.dao.RentalDAO;
 import com.eduaccess.dao.RentalDAO.NewOffer;
 import com.eduaccess.dao.RentalDAO.NewRequest;
 import com.eduaccess.db.DatabaseManager;
+import com.eduaccess.model.EducationLevel;
 import com.eduaccess.model.ItemCondition;
 import com.eduaccess.model.OfferStatus;
 import com.eduaccess.model.RentalCategory;
@@ -21,8 +22,13 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Library Rental Requests. Staff post what the library needs to rent for a short time, students offer their own
- * items, and staff approve, check in and hand back those items. The lifecycles are documented in schema.sql.
+ * Library Rental Requests. Staff post what the library needs to rent for a short time and what it pays, students
+ * offer their own items, and staff approve, check in and hand back those items. The lifecycles are documented in
+ * schema.sql.
+ *
+ * <p>Only students 18 or older may offer items (a rental is a contract, and RA 10173 asks for care with minors).
+ * EduAccess stores no birth date, so the rule has three layers: Elementary and Junior High accounts cannot offer at
+ * all, the student confirms their age on the offer, and staff check the school ID at check-in.
  */
 public final class RentalService {
 
@@ -30,6 +36,7 @@ public final class RentalService {
     static final String REASON_CLOSED = "Offers closed before the library could use this item.";
     static final String REASON_CANCELLED = "The library cancelled this request.";
     static final String REASON_NO_SHOW = "The item was not handed over in time.";
+    public static final String AGE_RULE = "Only students 18 or older can offer items for rent.";
 
     private final DatabaseManager db;
     private final RentalDAO rentals;
@@ -114,9 +121,15 @@ public final class RentalService {
         });
     }
 
-    /** The owner handed the item over at the counter. The condition is recorded as it arrived. */
-    public void checkIn(User staff, long offerId, ItemCondition condition) {
+    /**
+     * The owner handed the item over at the counter. The condition is recorded as it arrived, and staff confirm
+     * they checked the owner's school ID shows 18 or older.
+     */
+    public void checkIn(User staff, long offerId, ItemCondition condition, boolean ageChecked) {
         Access.requireAdmin(staff, "check in rented items");
+        if (!ageChecked) {
+            throw new ServiceException("Check the owner's school ID first. " + AGE_RULE);
+        }
         if (condition == null) {
             throw new ServiceException("Record the condition the item arrived in.");
         }
@@ -172,10 +185,26 @@ public final class RentalService {
 
     // ----- Students --------------------------------------------------------------------------------------------
 
+    /**
+     * False for staff, and for Elementary and Junior High students, who are all under 18. Anyone else may offer,
+     * after confirming their age.
+     */
+    public static boolean mayOffer(User user) {
+        return user.role() == Role.STUDENT
+                && user.educationLevel() != EducationLevel.ELEMENTARY
+                && user.educationLevel() != EducationLevel.JHS;
+    }
+
     /** A student offers one of their items for the library to rent. */
     public long offer(User owner, long requestId, OfferForm form, LocalDate today) {
         if (owner.role() != Role.STUDENT) {
             throw new ServiceException("Only students can offer items. Staff manage the requests.");
+        }
+        if (!mayOffer(owner)) {
+            throw new ServiceException(AGE_RULE + " Elementary and Junior High students cannot offer items.");
+        }
+        if (!form.adultConfirmed()) {
+            throw new ServiceException(AGE_RULE + " Please confirm you are 18 or older.");
         }
         refreshDeadlines(today);
         if (form.itemName() == null || form.itemName().isBlank()) {
@@ -348,8 +377,8 @@ public final class RentalService {
         if (f.neededUntil().isBefore(f.neededFrom())) {
             throw new ServiceException("The rental cannot end before it starts.");
         }
-        if (f.rentalFee() != null && f.rentalFee().signum() < 0) {
-            throw new ServiceException("The rental fee cannot be negative.");
+        if (f.rentalFee() == null || f.rentalFee().signum() <= 0) {
+            throw new ServiceException("Enter what the library pays per item, for example 150.");
         }
         if (f.dropoffPoint() == null || f.dropoffPoint().isBlank()) {
             throw new ServiceException("Choose where students bring the item.");
@@ -357,14 +386,14 @@ public final class RentalService {
     }
 
     private static BigDecimal fee(BigDecimal value) {
-        return (value == null ? BigDecimal.ZERO : value).setScale(2, RoundingMode.HALF_UP);
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     private static String blankToNull(String text) {
         return text == null || text.isBlank() ? null : text.strip();
     }
 
-    /** Values from the Create New Rental Request form. A null fee means the library does not pay. */
+    /** Values from the Create New Rental Request form. rentalFee is what the library pays per item, above zero. */
     public record RequestForm(
             String title,
             String description,
@@ -379,7 +408,7 @@ public final class RentalService {
             String dropoffPoint) {
     }
 
-    /** Values from the Offer Item for Rent dialog. photo may be null. */
+    /** Values from the Offer Item for Rent dialog. photo may be null. adultConfirmed: "I am 18 or older". */
     public record OfferForm(
             String itemName,
             String brandModel,
@@ -387,6 +416,7 @@ public final class RentalService {
             ItemCondition condition,
             Path photo,
             String ownerNote,
-            boolean agreed) {
+            boolean agreed,
+            boolean adultConfirmed) {
     }
 }

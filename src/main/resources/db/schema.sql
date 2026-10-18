@@ -99,7 +99,8 @@ CREATE INDEX IF NOT EXISTS ix_downloads_user ON digital_downloads (user_id);
 CREATE INDEX IF NOT EXISTS ix_downloads_resource ON digital_downloads (resource_id);
 
 -- Library Rental Requests. The library posts what it needs to rent for a short time, for example a projector
--- for a workshop. Students answer with an offer of their own item. Offered items never enter physical_items,
+-- for a workshop, and the fee it pays per item. Students 18 or older answer with an offer of their own item.
+-- The age rule is enforced by RentalService and checked against the school ID at the counter. Offered items never enter physical_items,
 -- because they belong to the student and are not lent to anyone else.
 -- Request lifecycle: Open, then Filled (enough offers approved, or offers closed with at least one approved),
 -- then Completed (every checked-in item handed back). Open becomes Expired when offers close with none approved.
@@ -116,7 +117,7 @@ CREATE TABLE IF NOT EXISTS rental_requests (
     offers_close_on TEXT    NOT NULL,
     needed_from     TEXT    NOT NULL,
     needed_until    TEXT    NOT NULL,
-    rental_fee      NUMERIC(10, 2) NOT NULL DEFAULT 0 CHECK (rental_fee >= 0),
+    rental_fee      NUMERIC(10, 2) NOT NULL CHECK (rental_fee > 0),
     dropoff_point   TEXT    NOT NULL,
     status          TEXT    NOT NULL DEFAULT 'Open'
                     CHECK (status IN ('Open', 'Filled', 'Completed', 'Cancelled', 'Expired')),

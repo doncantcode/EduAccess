@@ -7,6 +7,7 @@ import com.eduaccess.model.RentalRequest;
 import com.eduaccess.model.RentalRequestStatus;
 import com.eduaccess.model.Role;
 import com.eduaccess.model.User;
+import com.eduaccess.service.RentalService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -71,7 +72,8 @@ final class RentalRequestsView {
         myOffers = ctx.rentals.myOffers(user);
 
         Label how = Ui.banner("How it works: offer an item you own, bring it to the library counter once staff "
-                + "approve it, and collect it after the event. Staff record its condition both times.", "info");
+                + "approve it, and collect it after the event with your payment. " + RentalService.AGE_RULE
+                + " Bring your school ID: staff check it at hand-over.", "info");
 
         VBox page = new VBox(18, how, toolbar(), grid);
         refreshGrid();
@@ -157,6 +159,10 @@ final class RentalRequestsView {
             }
             footer = new VBox(8, yours, row);
             card.getStyleClass().add("request-mine");
+        } else if (!RentalService.mayOffer(ctx.session.require())) {
+            Label rule = Ui.muted("Offers are open to students 18 or older.");
+            rule.getStyleClass().add("small");
+            footer = rule;
         } else {
             Button offer = new Button("Offer Item for Rent", Icons.SWAP.node(18));
             offer.getStyleClass().addAll("button-primary", "button-block");
@@ -359,7 +365,7 @@ final class RentalRequestsView {
     }
 
     static String feeText(BigDecimal fee) {
-        return fee.signum() == 0 ? "No fee · volunteer thank-you" : Ui.money(fee) + " per item";
+        return fee.signum() <= 0 ? "Payment not set" : Ui.money(fee) + " per item";
     }
 
     private static Node progress(RentalRequest r) {

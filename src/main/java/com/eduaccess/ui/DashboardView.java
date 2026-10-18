@@ -7,6 +7,7 @@ import com.eduaccess.model.LoanStatus;
 import com.eduaccess.model.PhysicalItem;
 import com.eduaccess.model.RentalRequest;
 import com.eduaccess.model.User;
+import com.eduaccess.service.RentalService;
 import com.eduaccess.service.ReportService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -76,7 +77,9 @@ final class DashboardView {
         VBox available = availableCard(user);
         HBox.setHgrow(available, Priority.ALWAYS);
         VBox side = new VBox(16, quickActions());
-        libraryNeedsCard(today).ifPresent(side.getChildren()::add);
+        if (RentalService.mayOffer(user)) {
+            libraryNeedsCard(today).ifPresent(side.getChildren()::add);
+        }
         page.getChildren().add(new HBox(16, available, side));
         return page;
     }
