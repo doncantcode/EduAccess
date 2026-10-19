@@ -1,8 +1,26 @@
 # EduAccess
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doncantcode/EduAccess)
+
 Java desktop portal for Philippine schools: a Physical Library of books, a Physical Hub of equipment (calculators, laptops, lab kits), Library Rental Requests where the library rents items from students, loans with overdue fees, and an offline digital library. Built with JavaFX, raw JDBC and a local SQLite database.
 
+## In-Browser Live Demo (No Download Needed)
+
+You can launch and test EduAccess directly inside your web browser using GitHub Codespaces without installing Java, JavaFX, or Maven locally:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/doncantcode/EduAccess)
+
+1. Click **[Open in GitHub Codespaces](https://codespaces.new/doncantcode/EduAccess)** above (or on GitHub, click **Code** > **Codespaces** > **Create codespace on main**).
+2. Once the environment opens, the virtual desktop on **Port 6080** will automatically open in a browser tab (you can also view or open it anytime from the **Ports** tab at the bottom).
+3. In the terminal, start the app:
+   ```bash
+   mvn javafx:run
+   ```
+   *(or press `Ctrl+Shift+B`)*
+4. Switch to the Port 6080 desktop browser tab to interact directly with the EduAccess GUI!
+
 ## Layout
+
 
 ```
 pom.xml                              Maven build (Java 21, JavaFX 21, sqlite-jdbc, Apache POI, JUnit 6)

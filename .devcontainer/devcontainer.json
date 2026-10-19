@@ -1,0 +1,36 @@
+{
+  "name": "EduAccess (In-Browser Desktop Demo)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "noPassword"
+    }
+  },
+  "runArgs": [
+    "--shm-size=1g"
+  ],
+  "containerEnv": {
+    "DISPLAY": ":1"
+  },
+  "forwardPorts": [
+    6080
+  ],
+  "portsAttributes": {
+    "6080": {
+      "label": "EduAccess Virtual Desktop (noVNC)",
+      "onAutoForward": "openBrowserOnce"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven"
+      ]
+    }
+  },
+  "postCreateCommand": "mvn compile -DskipTests",
+  "postStartCommand": "bash .devcontainer/welcome.sh"
+}
