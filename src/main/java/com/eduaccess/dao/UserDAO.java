@@ -116,4 +116,90 @@ public final class UserDAO {
             }
         }
     }
+
+    /** Updates a user's password directly. */
+    public void updatePassword(Connection c, long userId, String passwordHash) throws SQLException {
+        String sql = "UPDATE users SET password_hash = ? WHERE user_id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, passwordHash);
+            ps.setLong(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void insertPasswordResetRequest(Connection c, long userId) throws SQLException {
+        String sql = "INSERT INTO password_reset_requests (user_id, status) VALUES (?, 'Pending')";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public java.util.List<com.eduaccess.model.PasswordResetRequest> pendingPasswordResetRequests(Connection c) throws SQLException {
+        String sql = """
+                SELECT r.request_id, r.user_id, u.school_id, u.full_name, r.requested_at, r.status
+                FROM password_reset_requests r
+                JOIN users u ON u.user_id = r.user_id
+                WHERE r.status = 'Pending'
+                ORDER BY r.request_id ASC
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            java.util.List<com.eduaccess.model.PasswordResetRequest> list = new java.util.ArrayList<>();
+            while (rs.next()) {
+                list.add(new com.eduaccess.model.PasswordResetRequest(
+                        rs.getLong("request_id"),
+                        rs.getLong("user_id"),
+                        rs.getString("school_id"),
+                        rs.getString("full_name"),
+                        rs.getString("requested_at"),
+                        rs.getString("status")
+                ));
+            }
+            return list;
+        }
+    }
+
+    public void resolvePasswordResetRequest(Connection c, long requestId, long adminId) throws SQLException {
+        String sql = "UPDATE password_reset_requests SET status = 'Approved', resolved_by = ?, resolved_at = datetime('now') WHERE request_id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, adminId);
+            ps.setLong(2, requestId);
+            ps.executeUpdate();
+        }
+    }
+
+    public void rejectPasswordResetRequest(Connection c, long requestId, long adminId) throws SQLException {
+        String sql = "UPDATE password_reset_requests SET status = 'Rejected', resolved_by = ?, resolved_at = datetime('now') WHERE request_id = ?";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, adminId);
+            ps.setLong(2, requestId);
+            ps.executeUpdate();
+        }
+    }
+
+    public java.util.Optional<com.eduaccess.model.PasswordResetRequest> findPasswordResetRequest(Connection c, long requestId) throws SQLException {
+        String sql = """
+                SELECT r.request_id, r.user_id, u.school_id, u.full_name, r.requested_at, r.status
+                FROM password_reset_requests r
+                JOIN users u ON u.user_id = r.user_id
+                WHERE r.request_id = ?
+                """;
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, requestId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return java.util.Optional.of(new com.eduaccess.model.PasswordResetRequest(
+                            rs.getLong("request_id"),
+                            rs.getLong("user_id"),
+                            rs.getString("school_id"),
+                            rs.getString("full_name"),
+                            rs.getString("requested_at"),
+                            rs.getString("status")
+                    ));
+                }
+                return java.util.Optional.empty();
+            }
+        }
+    }
 }

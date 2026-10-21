@@ -50,6 +50,8 @@ final class AdminDashboardView {
                         () -> AdminForms.addDigitalResource(ctx, () -> shell.go(Screen.DASHBOARD))),
                 action("+ Record a borrow", "button-teal",
                         () -> AdminForms.recordBorrow(ctx, () -> shell.go(Screen.DASHBOARD))),
+                action("Reset student password", "button-teal",
+                        () -> AdminForms.resetStudentPassword(ctx, () -> shell.go(Screen.DASHBOARD))),
                 action("Review donations", "button-secondary", () -> shell.go(Screen.INVENTORY)));
         page.getChildren().add(Ui.card(Ui.section("Quick actions"), actions));
         page.getChildren().add(AnnouncementViews.staffCard(ctx, () -> shell.go(Screen.DASHBOARD)));

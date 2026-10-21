@@ -3,6 +3,7 @@ package com.eduaccess.ui;
 import com.eduaccess.dao.AnnouncementDAO;
 import com.eduaccess.dao.DigitalResourceDAO;
 import com.eduaccess.dao.LoanDAO;
+import com.eduaccess.dao.MarketplaceDAO;
 import com.eduaccess.dao.PhysicalItemDAO;
 import com.eduaccess.dao.RentalDAO;
 import com.eduaccess.dao.ReportDAO;
@@ -16,6 +17,7 @@ import com.eduaccess.service.InventoryService;
 import com.eduaccess.service.LoanPolicy;
 import com.eduaccess.service.LoanRules;
 import com.eduaccess.service.LoanService;
+import com.eduaccess.service.MarketplaceService;
 import com.eduaccess.service.RentalService;
 import com.eduaccess.service.ReportService;
 import com.eduaccess.service.Session;
@@ -33,6 +35,7 @@ public final class AppContext {
     final ReportService reports;
     final RentalService rentals;
     final AnnouncementService announcements;
+    final MarketplaceService marketplace;
     final FileExportService exporter = new FileExportService();
     final UsbService usb = new UsbService();
 
@@ -48,5 +51,6 @@ public final class AppContext {
         this.reports = new ReportService(db, loanDao, items, resources, new ReportDAO());
         this.rentals = new RentalService(db, new RentalDAO());
         this.announcements = new AnnouncementService(db, new AnnouncementDAO());
+        this.marketplace = new MarketplaceService(db, new MarketplaceDAO(), users);
     }
 }

@@ -54,10 +54,10 @@ public final class AppShell {
 
     private static final Insets PAGE_PADDING = new Insets(28, 32, 40, 32);
     private static final List<Screen> STUDENT_MENU = List.of(Screen.DASHBOARD, Screen.PHYSICAL_LIBRARY, Screen.CATALOG,
-            Screen.RENTAL_REQUESTS, Screen.DONATE, Screen.MY_LOANS, Screen.LIBRARY, Screen.AI);
+            Screen.RENTAL_REQUESTS, Screen.MARKETPLACE, Screen.DONATE, Screen.MY_LOANS, Screen.LIBRARY, Screen.AI);
     private static final List<Screen> STAFF_MENU = List.of(Screen.DASHBOARD, Screen.PHYSICAL_LIBRARY, Screen.CATALOG,
             Screen.RENTAL_REQUESTS, Screen.LIBRARY, Screen.AI);
-    private static final List<Screen> STAFF_ADMIN_MENU = List.of(Screen.INVENTORY, Screen.IMPACT);
+    private static final List<Screen> STAFF_ADMIN_MENU = List.of(Screen.INVENTORY, Screen.PASSWORD_RESETS, Screen.IMPACT);
 
     private final AppContext ctx;
     private final Runnable onSignOut;
@@ -141,11 +141,13 @@ public final class AppShell {
             case PHYSICAL_LIBRARY -> new LibraryHubView(ctx, this, LibraryHubView.Tab.BOOKS).build();
             case RENTAL_REQUESTS -> new LibraryHubView(ctx, this, LibraryHubView.Tab.RENTALS).build();
             case CATALOG -> new CatalogView(ctx, this, Catalog.HUB).build();
+            case MARKETPLACE -> new MarketplaceView(ctx, this).build();
             case DONATE -> new DonateView(ctx, this).build();
             case MY_LOANS -> new MyLoansView(ctx, this).build();
             case LIBRARY -> new LibraryView(ctx, this).build();
             case AI -> new AiPlaceholderView().build();
             case INVENTORY -> new InventoryView(ctx, this).build();
+            case PASSWORD_RESETS -> new PasswordResetsView(ctx, this).build();
             case IMPACT -> new ImpactView(ctx).build();
         };
     }
@@ -241,6 +243,7 @@ public final class AppShell {
                 long overdue = ctx.loans.myLoans(user, today).stream()
                         .filter(d -> d.loan().status() == LoanStatus.OVERDUE).count();
                 setNavCount(Screen.MY_LOANS, (int) overdue);
+                setNavCount(Screen.MARKETPLACE, ctx.marketplace.unreadRequestsAndMessagesCount(user));
             }
             int notices = notices(user, today).size();
             bellCount.setText(notices > 9 ? "9+" : String.valueOf(notices));

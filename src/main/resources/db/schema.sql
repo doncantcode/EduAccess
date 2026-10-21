@@ -201,3 +201,71 @@ CREATE TABLE IF NOT EXISTS donation_drafts (
     photo_path    TEXT,
     saved_at      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+
+-- Student Marketplace: peer-to-peer lending between students. The library is not involved in
+-- any of this, so these tables are separate from physical_items, loans and rental_offers.
+CREATE TABLE IF NOT EXISTS marketplace_listings (
+    listing_id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id        INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    title           TEXT    NOT NULL,
+    description     TEXT    NOT NULL,
+    category        TEXT    NOT NULL CHECK (category IN ('Calculators','Laptops & Tablets','Textbooks','Lab/Study Kits','Other')),
+    condition       TEXT    NOT NULL CHECK (condition IN ('Like New','Good','Fair')),
+    education_level TEXT    NOT NULL CHECK (education_level IN ('Elementary','JHS','SHS','College')),
+    daily_fee       NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (daily_fee >= 0),
+    pickup_point    TEXT    NOT NULL,
+    photo_path      TEXT,
+    status          TEXT    NOT NULL DEFAULT 'Active' CHECK (status IN ('Active','Paused','Removed')),
+    created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS marketplace_borrows (
+    borrow_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    listing_id    INTEGER NOT NULL REFERENCES marketplace_listings (listing_id) ON DELETE CASCADE,
+    borrower_id   INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    owner_id      INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    status        TEXT    NOT NULL DEFAULT 'Requested'
+                  CHECK (status IN ('Requested','Accepted','Borrowed','Returned','Declined','Cancelled')),
+    agreed_fee    NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (agreed_fee >= 0),
+    note          TEXT,
+    requested_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    responded_at  TEXT,
+    borrowed_at   TEXT,
+    returned_at   TEXT,
+    CHECK (owner_id <> borrower_id),
+    CHECK ((status = 'Returned') = (returned_at IS NOT NULL)),
+    CHECK ((status = 'Borrowed') = (borrowed_at IS NOT NULL))
+);
+
+CREATE TABLE IF NOT EXISTS marketplace_messages (
+    message_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    listing_id  INTEGER NOT NULL REFERENCES marketplace_listings (listing_id) ON DELETE CASCADE,
+    sender_id   INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    body        TEXT    NOT NULL,
+    sent_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_marketplace_one_live_borrow_per_listing
+    ON marketplace_borrows (listing_id) WHERE status IN ('Requested','Accepted','Borrowed');
+CREATE UNIQUE INDEX IF NOT EXISTS ux_marketplace_one_live_borrow_per_borrower
+    ON marketplace_borrows (listing_id, borrower_id) WHERE status IN ('Requested','Accepted','Borrowed');
+CREATE INDEX IF NOT EXISTS ix_marketplace_listings_owner ON marketplace_listings (owner_id);
+CREATE INDEX IF NOT EXISTS ix_marketplace_listings_status ON marketplace_listings (status);
+CREATE INDEX IF NOT EXISTS ix_marketplace_borrows_listing ON marketplace_borrows (listing_id);
+CREATE INDEX IF NOT EXISTS ix_marketplace_borrows_borrower ON marketplace_borrows (borrower_id);
+CREATE INDEX IF NOT EXISTS ix_marketplace_borrows_owner ON marketplace_borrows (owner_id);
+CREATE INDEX IF NOT EXISTS ix_marketplace_messages_listing ON marketplace_messages (listing_id);
+
+-- Password reset requests submitted by students when they click "Forgot password?".
+CREATE TABLE IF NOT EXISTS password_reset_requests (
+    request_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+    status       TEXT    NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Approved', 'Rejected')),
+    requested_at TEXT    NOT NULL DEFAULT (datetime('now')),
+    resolved_by  INTEGER REFERENCES users (user_id),
+    resolved_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_password_resets_status ON password_reset_requests (status);
+
+

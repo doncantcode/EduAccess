@@ -68,6 +68,11 @@ public final class LoginController {
         onRegister.run();
     }
 
+    @FXML
+    private void handleForgotPassword() {
+        ForgotPasswordDialog.show(ctx, schoolId.getText());
+    }
+
     /** The radio buttons carry the LoginRole name as their user data. */
     private LoginRole selectedRole() {
         return LoginRole.valueOf((String) roleGroup.getSelectedToggle().getUserData());

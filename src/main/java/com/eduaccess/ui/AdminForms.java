@@ -165,67 +165,53 @@ final class AdminForms {
     }
 
     static void recordBorrow(AppContext ctx, Runnable onSaved) {
-        Dialog<Void> dialog = dialog("Record a borrow at the counter");
+        Dialog<Void> dialog = dialog("Record a borrow");
         TextField studentId = new TextField();
-        studentId.setPromptText("School ID of the student");
-
-        ComboBox<PhysicalItem> item = new ComboBox<>(FXCollections.observableArrayList(
-                ctx.inventory.browse(new ItemFilter(List.of(), null, ItemStatus.AVAILABLE, null))));
-        item.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(PhysicalItem value) {
-                return value == null ? "" : value.title() + (value.brandModel() == null ? "" : " · " + value.brandModel());
-            }
-
-            @Override
-            public PhysicalItem fromString(String text) {
-                return null;
-            }
-        });
-        item.setMaxWidth(Double.MAX_VALUE);
-        if (!item.getItems().isEmpty()) {
-            item.setValue(item.getItems().get(0));
-        }
-
-        ComboBox<Integer> period = new ComboBox<>(FXCollections.observableArrayList(
-                ctx.loans.rules().policy().loanPeriodDays().stream().sorted().toList()));
-        period.setValue(7);
-        period.setConverter(new StringConverter<>() {
-            @Override
-            public String toString(Integer value) {
-                return value == null ? "" : value + " days";
-            }
-
-            @Override
-            public Integer fromString(String text) {
-                return null;
-            }
-        });
-        Label due = Ui.muted("");
-        period.valueProperty().addListener((obs, was, now) -> due.setText(now == null ? ""
-                : "Due " + Ui.date(LocalDate.now().plusDays(now))));
-        due.setText("Due " + Ui.date(LocalDate.now().plusDays(7)));
+        studentId.setPromptText("Student school ID");
+        TextField itemId = new TextField();
+        itemId.setPromptText("Item ID number");
 
         GridPane grid = grid();
         int row = 0;
         addRow(grid, row++, "Student school ID", studentId);
-        addRow(grid, row++, "Item (available only)", item);
-        addRow(grid, row++, "Loan period", period);
-        addRow(grid, row++, "Due date", due);
+        addRow(grid, row++, "Item ID", itemId);
         Label error = errorLabel();
         grid.add(error, 0, row, 2, 1);
 
         ButtonType save = saveButton(dialog);
         onSave(dialog, save, error, () -> {
             User student = ctx.auth.findStudent(studentId.getText());
-            if (item.getValue() == null) {
-                throw new ServiceException("Choose an available item.");
+            long id = Long.parseLong(itemId.getText().strip());
+            ctx.loans.borrow(student, id, 14, LocalDate.now());
+            Ui.info("Borrow successfully recorded for " + student.fullName() + ".");
+        }, onSaved);
+        dialog.getDialogPane().setContent(grid);
+        dialog.showAndWait();
+    }
+
+    static void resetStudentPassword(AppContext ctx, Runnable onSaved) {
+        Dialog<Void> dialog = dialog("Reset student password");
+        TextField studentId = new TextField();
+        studentId.setPromptText("School ID of the student");
+        TextField newPassword = new TextField();
+        newPassword.setPromptText("New password (at least 8 chars)");
+
+        GridPane grid = grid();
+        int row = 0;
+        addRow(grid, row++, "Student school ID", studentId);
+        addRow(grid, row++, "New password", newPassword);
+        Label error = errorLabel();
+        grid.add(error, 0, row, 2, 1);
+
+        ButtonType save = saveButton(dialog);
+        onSave(dialog, save, error, () -> {
+            User student = ctx.auth.findStudent(studentId.getText());
+            String pwd = newPassword.getText();
+            if (pwd == null || pwd.length() < 8) {
+                throw new ServiceException("Use a password of at least 8 characters.");
             }
-            if (period.getValue() == null) {
-                throw new ServiceException("Choose a loan period.");
-            }
-            Loan loan = ctx.loans.borrow(student, item.getValue().id(), period.getValue(), LocalDate.now());
-            Ui.info("Borrow recorded for " + student.fullName() + ". Due " + Ui.date(loan.dueDate()) + ".");
+            ctx.auth.resetPassword(student.id(), pwd);
+            Ui.info("Password successfully reset for " + student.fullName() + ".");
         }, onSaved);
         dialog.getDialogPane().setContent(grid);
         dialog.showAndWait();

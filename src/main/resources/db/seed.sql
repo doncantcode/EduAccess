@@ -150,3 +150,16 @@ INSERT INTO rental_offers (offer_id, request_id, owner_id, item_name, brand_mode
 INSERT INTO announcements (announcement_id, posted_by, title, body, posted_on, expires_on) VALUES
 (1, 1, 'Donation drive for graduating students', 'Drop off calculators, books and laptops at the Library Counter until the end of the month. Every donation gets a thank-you badge.', date('now', 'localtime', '-2 days'), date('now', 'localtime', '+20 days')),
 (2, 1, 'Library hours during exam week',        'The library stays open until 8 PM from Monday to Friday next week.',                                                                   date('now', 'localtime', '-1 days'), date('now', 'localtime', '+10 days'));
+
+-- Student Marketplace seed data
+INSERT INTO marketplace_listings (listing_id, owner_id, title, description, category, condition, education_level, daily_fee, pickup_point, status) VALUES
+(1, 10, 'Calculus Early Transcendentals', '8th Edition textbook in great condition. Free to borrow for CS or Eng students.', 'Textbooks', 'Good', 'College', 0.00, 'Main Campus Student Center', 'Active'),
+(2, 11, 'Portable Scientific Graphing Calculator', 'TI-84 Plus CE color graphing calculator. Very helpful for calculus and physics.', 'Calculators', 'Like New', 'College', 10.00, 'North Campus Library Lobby', 'Active'),
+(3, 12, 'Arduino Starter Kit', 'Complete microcontroller lab kit with sensors and breadboards.', 'Lab/Study Kits', 'Good', 'College', 15.00, 'Main Campus Student Center', 'Active');
+
+INSERT INTO marketplace_borrows (borrow_id, listing_id, borrower_id, owner_id, status, agreed_fee, note) VALUES
+(1, 2, 14, 11, 'Requested', 10.00, 'Hi! May I borrow this for next week''s exam? Thank you!');
+
+INSERT INTO marketplace_messages (message_id, listing_id, sender_id, body) VALUES
+(1, 2, 14, 'Hi Gabriel! Is the TI-84 Plus still available for the upcoming midterm exam?'),
+(2, 2, 11, 'Hello! Yes it is. Feel free to send a borrow request and we can meet at North Campus.');

@@ -36,7 +36,6 @@
             <Label styleClass="brand-text" text="Coming in a later release." wrapText="true"/>
         </VBox>
         <Region VBox.vgrow="ALWAYS"/>
-        <Label styleClass="brand-text" text="Aligned with UN Sustainable Development Goal 4: Quality Education" wrapText="true"/>
     </VBox>
 
     <!-- Right: the sign-in card. -->
@@ -76,7 +75,11 @@
             <Label fx:id="errorText" styleClass="error-text" wrapText="true"/>
 
             <Button text="Sign in" styleClass="button-primary" maxWidth="Infinity" onAction="#handleSignIn"/>
-            <Hyperlink text="New here? Create account" onAction="#handleRegister"/>
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <Hyperlink text="New here? Create account" onAction="#handleRegister"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Hyperlink text="Forgot password?" onAction="#handleForgotPassword"/>
+            </HBox>
             <Label styleClass="muted" text="No internet? Sign in works offline with a local account." wrapText="true"/>
         </VBox>
     </StackPane>

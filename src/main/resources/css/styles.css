@@ -327,6 +327,53 @@
     -fx-font-weight: bold;
 }
 
+/* Marketplace tabs and chat */
+.toggle-tab {
+    -fx-background-color: -ea-surface;
+    -fx-border-color: -ea-line;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: -ea-ink;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 16 8 16;
+    -fx-cursor: hand;
+}
+
+.toggle-tab:selected {
+    -fx-background-color: -ea-navy;
+    -fx-border-color: -ea-navy;
+    -fx-text-fill: white;
+}
+
+.chat-thread {
+    -fx-background-color: -ea-surface;
+    -fx-border-color: -ea-line;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16;
+    -fx-spacing: 12;
+}
+
+.chat-bubble {
+    -fx-background-color: -ea-canvas;
+    -fx-background-radius: 12;
+    -fx-border-color: -ea-line;
+    -fx-border-radius: 12;
+    -fx-text-fill: -ea-ink;
+    -fx-font-size: 13.5px;
+}
+
+.chat-bubble-mine {
+    -fx-background-color: #dbeafe;
+    -fx-background-radius: 12;
+    -fx-border-color: #bfdbfe;
+    -fx-border-radius: 12;
+    -fx-text-fill: -ea-ink;
+    -fx-font-size: 13.5px;
+}
+
+
 .avatar.avatar-admin {
     -fx-background-color: -ea-amber-bright;
 }

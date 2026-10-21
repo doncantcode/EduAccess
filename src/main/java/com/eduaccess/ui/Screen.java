@@ -6,11 +6,13 @@ enum Screen {
     PHYSICAL_LIBRARY("Physical Library", Icons.BOOK),
     CATALOG("Physical Hub", Icons.BOX),
     RENTAL_REQUESTS("Library Rental Requests", Icons.SWAP),
+    MARKETPLACE("Student Marketplace", Icons.USERS),
     DONATE("Donate an Item", Icons.HEART),
     MY_LOANS("My Loans", Icons.LIST),
     LIBRARY("Digital Library", Icons.TABLET),
     AI("AI Study Assistant", Icons.SPARKLE),
     INVENTORY("Inventory & Approval", Icons.CLIPBOARD),
+    PASSWORD_RESETS("Password Resets", Icons.USERS),
     IMPACT("Impact Dashboard", Icons.CHART);
 
     private final String label;

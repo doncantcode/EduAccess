@@ -100,6 +100,96 @@ public final class AuthService {
                 .orElseThrow(() -> new ServiceException("No student account has the school ID " + id + "."));
     }
 
+    public void resetPassword(long userId, String newPassword) {
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new ServiceException("Use a password of at least " + MIN_PASSWORD_LENGTH + " characters.");
+        }
+        String hash = PasswordHasher.hash(newPassword.toCharArray());
+        Sql.write(db, c -> {
+            users.updatePassword(c, userId, hash);
+            return null;
+        });
+    }
+
+    public User resetStudentPasswordByAdmin(String adminSchoolId, char[] adminPassword, String studentSchoolId, String newPassword) {
+        String adminId = clean(adminSchoolId);
+        String sId = clean(studentSchoolId);
+        if (adminId.isEmpty() || adminPassword.length == 0) {
+            throw new ServiceException("Enter admin school ID and password.");
+        }
+        if (sId.isEmpty()) {
+            throw new ServiceException("Enter the student school ID.");
+        }
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new ServiceException("Use a password of at least " + MIN_PASSWORD_LENGTH + " characters.");
+        }
+        try {
+            return Sql.write(db, c -> {
+                User admin = users.authenticate(c, adminId, adminPassword)
+                        .orElseThrow(() -> new ServiceException("Admin credentials are incorrect."));
+                if (admin.role() != Role.ADMIN) {
+                    throw new ServiceException("The specified account is not a library administrator.");
+                }
+                User student = users.findBySchoolId(c, sId)
+                        .filter(u -> u.role() == Role.STUDENT)
+                        .orElseThrow(() -> new ServiceException("No student account has the school ID " + sId + "."));
+
+                String hash = PasswordHasher.hash(newPassword.toCharArray());
+                users.updatePassword(c, student.id(), hash);
+                return student;
+            });
+        } finally {
+            Arrays.fill(adminPassword, '\0');
+        }
+    }
+
+    public void requestPasswordReset(String schoolId) {
+        String id = clean(schoolId);
+        if (id.isEmpty()) {
+            throw new ServiceException("Enter your school ID.");
+        }
+        Sql.write(db, c -> {
+            User user = users.findBySchoolId(c, id)
+                    .orElseThrow(() -> new ServiceException("No account has the school ID " + id + "."));
+            users.insertPasswordResetRequest(c, user.id());
+            return null;
+        });
+    }
+
+    public java.util.List<com.eduaccess.model.PasswordResetRequest> pendingPasswordResetRequests(User admin) {
+        if (admin.role() != Role.ADMIN) {
+            throw new ServiceException("Only administrators can view password reset requests.");
+        }
+        return Sql.read(db, c -> users.pendingPasswordResetRequests(c));
+    }
+
+    public void approvePasswordResetRequest(User admin, long requestId, String newPassword) {
+        if (admin.role() != Role.ADMIN) {
+            throw new ServiceException("Only administrators can approve password reset requests.");
+        }
+        if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new ServiceException("Use a password of at least " + MIN_PASSWORD_LENGTH + " characters.");
+        }
+        String hash = PasswordHasher.hash(newPassword.toCharArray());
+        Sql.write(db, c -> {
+            var req = users.findPasswordResetRequest(c, requestId)
+                    .orElseThrow(() -> new ServiceException("Password reset request not found."));
+            users.updatePassword(c, req.userId(), hash);
+            users.resolvePasswordResetRequest(c, requestId, admin.id());
+            return null;
+        });
+    }
+
+    public void rejectPasswordResetRequest(User admin, long requestId) {
+        if (admin.role() != Role.ADMIN) {
+            throw new ServiceException("Only administrators can reject password reset requests.");
+        }
+        Sql.write(db, c -> {
+            users.rejectPasswordResetRequest(c, requestId, admin.id());
+            return null;
+        });
+    }
+
     private static void validate(RegistrationForm form) {
         if (clean(form.schoolId()).isEmpty()) {
             throw new ServiceException("Enter your school ID.");

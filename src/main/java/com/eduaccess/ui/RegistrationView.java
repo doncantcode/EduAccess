@@ -75,9 +75,11 @@ public final class RegistrationView {
 
         Hyperlink signIn = new Hyperlink("Back to sign in");
         signIn.setOnAction(event -> onDone.run());
+        Hyperlink terms = new Hyperlink("Terms of Use");
+        terms.setOnAction(event -> TermsDialog.show());
         Label brand = new Label("EduAccess");
         brand.getStyleClass().add("brand-name");
-        HBox top = Ui.row(12, brand, signInSpacer(), signIn);
+        HBox top = Ui.row(12, brand, terms, signInSpacer(), signIn);
 
         Label title = Ui.heading("Create your account");
         Label subtitle = Ui.muted("Tell us your school level so we can show materials that fit you.");

@@ -138,6 +138,7 @@ final class DashboardView {
         buttons.getChildren().addAll(
                 quickButton("Books", Screen.PHYSICAL_LIBRARY),
                 quickButton("Equipment", Screen.CATALOG),
+                quickButton("Marketplace", Screen.MARKETPLACE),
                 quickButton("Donate", Screen.DONATE),
                 quickButton("E-library", Screen.LIBRARY));
         VBox card = Ui.card(Ui.section("Quick actions"), buttons);
