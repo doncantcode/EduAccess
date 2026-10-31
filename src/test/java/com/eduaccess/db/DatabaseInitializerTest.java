@@ -149,6 +149,27 @@ class DatabaseInitializerTest {
     }
 
     @Test
+    void seededCatalogHasAtLeastFiveItemsPerCategoryAndLevel() throws Exception {
+        DatabaseInitializer.initialize(dbFile, true);
+
+        // Physical Hub categories: Calculators, Laptops & Tablets, Lab/Study Kits
+        for (String category : List.of("Calculators", "Laptops & Tablets", "Lab/Study Kits")) {
+            int count = queryInt("SELECT COUNT(*) FROM physical_items WHERE category = '" + category + "'");
+            assertTrue(count >= 5, "Category " + category + " should have at least 5 items, found: " + count);
+        }
+
+        // Physical Library (category 'Textbooks') per education level: Elementary, JHS, SHS, College
+        for (String level : List.of("Elementary", "JHS", "SHS", "College")) {
+            int count = queryInt("""
+                    SELECT COUNT(DISTINCT i.item_id)
+                    FROM physical_items i
+                    JOIN physical_item_levels l ON l.item_id = i.item_id
+                    WHERE i.category = 'Textbooks' AND l.education_level = '""" + level + "'");
+            assertTrue(count >= 5, "Level " + level + " should have at least 5 books, found: " + count);
+        }
+    }
+
+    @Test
     void splitStatementsDropsCommentsAndEmptyPieces() {
         List<String> statements = DatabaseInitializer.splitStatements("""
                 -- a comment line

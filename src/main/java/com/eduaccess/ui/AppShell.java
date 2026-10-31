@@ -145,7 +145,7 @@ public final class AppShell {
             case DONATE -> new DonateView(ctx, this).build();
             case MY_LOANS -> new MyLoansView(ctx, this).build();
             case LIBRARY -> new LibraryView(ctx, this).build();
-            case AI -> new AiPlaceholderView().build();
+            case AI -> new AiStudyAssistantView(ctx, this).build();
             case INVENTORY -> new InventoryView(ctx, this).build();
             case PASSWORD_RESETS -> new PasswordResetsView(ctx, this).build();
             case IMPACT -> new ImpactView(ctx).build();

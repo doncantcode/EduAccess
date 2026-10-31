@@ -21,6 +21,11 @@ public final class DatabaseInitializer {
     private static final String SCHEMA_RESOURCE = "/db/schema.sql";
     private static final String SEED_RESOURCE = "/db/seed.sql";
 
+    public static void main(String[] args) throws SQLException, IOException {
+        Path path = args.length > 0 ? Path.of(args[0]) : Path.of("data", "eduaccess.db");
+        initialize(path, true);
+    }
+
     private DatabaseInitializer() {
     }
 

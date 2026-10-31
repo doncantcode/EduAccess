@@ -9,6 +9,7 @@ import com.eduaccess.dao.RentalDAO;
 import com.eduaccess.dao.ReportDAO;
 import com.eduaccess.dao.UserDAO;
 import com.eduaccess.db.DatabaseManager;
+import com.eduaccess.service.AiRecommendationService;
 import com.eduaccess.service.AnnouncementService;
 import com.eduaccess.service.AuthService;
 import com.eduaccess.service.DigitalLibraryService;
@@ -36,6 +37,7 @@ public final class AppContext {
     final RentalService rentals;
     final AnnouncementService announcements;
     final MarketplaceService marketplace;
+    public final AiRecommendationService ai;
     final FileExportService exporter = new FileExportService();
     final UsbService usb = new UsbService();
 
@@ -52,5 +54,6 @@ public final class AppContext {
         this.rentals = new RentalService(db, new RentalDAO());
         this.announcements = new AnnouncementService(db, new AnnouncementDAO());
         this.marketplace = new MarketplaceService(db, new MarketplaceDAO(), users);
+        this.ai = new AiRecommendationService(db, items);
     }
 }

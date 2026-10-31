@@ -32,14 +32,14 @@ src/main/resources/
 src/main/java/com/eduaccess/
   EduAccessApp.java                  JavaFX entry point: prepares the database, opens the Login screen
   ui/                                Screens, the BorderPane shell (AppShell), dialogs (AdminForms, RentalDialogs), Icons, Lang
-  service/                           Business rules: LoanService, InventoryService, RentalService, AnnouncementService, AuthService, DigitalLibraryService,
+  service/                           Business rules: AiRecommendationService, LoanService, InventoryService, RentalService, AnnouncementService, AuthService, DigitalLibraryService,
                                      UsbService, FileExportService, ReportService, LoanRules, LoanPolicy, Access
   dao/                               Raw JDBC with parameterised queries: UserDAO, PhysicalItemDAO, LoanDAO, RentalDAO, AnnouncementDAO, DonationDraftDAO, ExportDAO,
                                      DigitalResourceDAO, ReportDAO
   db/                                DatabaseManager (connections, transactions), DatabaseInitializer
   model/                             Records and enums that mirror the schema's CHECK values
   security/PasswordHasher.java       PBKDF2-HMAC-SHA256, JDK only
-src/test/java/...                    87 JUnit tests (rules, hashing, database, services, rentals, announcements, drafts, exports, USB)
+src/test/java/...                    95 JUnit tests (AI study assistant, rules, hashing, database, services, rentals, announcements, drafts, exports, USB)
 storage/digital/                     PDFs for the digital library (demo placeholders; admins add more)
 storage/photos/items/                Item photos are copied here (created on first use)
 ```
@@ -66,7 +66,7 @@ There are two kinds of user. The sign-in screen offers both.
 
 | Role | Sign-in choice | Can do |
 |---|---|---|
-| Student | Student | Browse the Physical Library and Physical Hub, borrow items, return and extend own loans, donate items, offer items for Library Rental Requests, use the Digital Library |
+| Student | Student | Browse the Physical Library and Physical Hub, use the AI Study Assistant for personalized book recommendations, borrow items, return and extend own loans, donate items, offer items for Library Rental Requests, use the Digital Library |
 | Library admin | Library Admin | Everything students can see, plus: create rental requests and approve, check in and return offered items, add physical items, add digital resources, record borrows at the counter, approve or reject donations, check items in, return borrowed items, waive fees, view the impact dashboard and export reports |
 
 Demo accounts (passwords are in the header of `seed.sql`):
@@ -118,6 +118,7 @@ The window is a `BorderPane`: a navy sidebar on the left, and beside it the head
 | Donate an Item | Permanent gifts only, with a live listing preview and **Save draft** |
 | My Loans | Current loans (up to 3 at a time) and History tabs, **Download history**, **How to return** |
 | Digital Library | As before |
+| AI Study Assistant | Personalized book recommendations and study guidance for topics or learning problems, with real-time shelf availability and direct borrow links |
 | Impact Dashboard (staff) | Metrics for a date range, most requested subjects, resource use by education level, recent activity, and the export panel |
 
 Physical Library and Library Rental Requests are two tabs of one page; each also has its own sidebar entry.
@@ -184,7 +185,7 @@ The library posts what it needs to rent for a short time (a projector for a fair
 
 ## Not built yet
 
-- AI Study Assistant (its screen shows "Feature not available for now").
+- AI Study Assistant: interactive recommendations powered by Google Gemini (`gemini-3.5-flash-lite`) and local offline fallback.
 - A notification system (alerts stored per user, overdue reminders sent to borrowers). The header bell lists what needs attention right now, worked out when it opens.
 - Filipino text for buttons, form labels and messages.
 
