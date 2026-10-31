@@ -219,14 +219,44 @@ final class AiStudyAssistantView {
         VBox adviceCard = Ui.card(adviceTitleRow, adviceText);
         resultsBox.getChildren().add(adviceCard);
 
-        // 2. Recommended Books Grid
+        // 2. Recommended Books Grid or "No Books Found" Notice
         List<PhysicalItem> books = result.recommendedBooks();
         if (books.isEmpty()) {
-            VBox empty = Ui.card(
-                    Ui.section("No Exact Books Available Right Now"),
-                    Ui.muted("None of the books currently in the physical library directly matched this topic. Consider exploring the Digital Library tab for online modules.")
+            Label noBooksBanner = Ui.banner(
+                    "The library doesn't have a book on that particular topic.",
+                    "warning"
             );
-            resultsBox.getChildren().add(empty);
+            noBooksBanner.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+            Label noticeHeader = Ui.section("No Physical Books Available for This Topic");
+            Label noticeBody = new Label(
+                    "We searched the entire physical library catalog for \"" + result.query() + "\", "
+                    + "but the library does not currently have a physical book on this particular topic in our collection."
+            );
+            noticeBody.setWrapText(true);
+            noticeBody.setStyle("-fx-font-size: 13px;");
+
+            Label optionsLabel = Ui.muted("You can still find learning resources through other parts of EduAccess:");
+
+            Button digitalBtn = new Button("Explore Digital Library", Icons.TABLET.node(16));
+            digitalBtn.getStyleClass().addAll("button-primary", "button-small");
+            digitalBtn.setOnAction(e -> shell.go(Screen.LIBRARY));
+
+            Button marketBtn = new Button("Check Student Marketplace", Icons.USERS.node(16));
+            marketBtn.getStyleClass().addAll("button-secondary", "button-small");
+            marketBtn.setOnAction(e -> shell.go(Screen.MARKETPLACE));
+
+            Button allBooksBtn = new Button("Browse All Library Books", Icons.BOOK.node(16));
+            allBooksBtn.getStyleClass().addAll("button-secondary", "button-small");
+            allBooksBtn.setOnAction(e -> shell.go(Screen.PHYSICAL_LIBRARY));
+
+            HBox actions = Ui.row(10, digitalBtn, marketBtn, allBooksBtn);
+
+            VBox emptyCard = new VBox(12, noticeHeader, noticeBody, optionsLabel, actions);
+            emptyCard.getStyleClass().addAll("card", "teal-card-soft");
+
+            VBox emptySection = new VBox(12, noBooksBanner, emptyCard);
+            resultsBox.getChildren().add(emptySection);
         } else {
             Label booksHeader = Ui.section("Recommended Available Books (" + books.size() + ")");
             Label booksSub = Ui.muted("These books are available right now on the library shelves. Click 'View & Borrow' to check details or borrow.");

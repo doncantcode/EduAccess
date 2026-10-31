@@ -143,6 +143,14 @@ class AiRecommendationServiceTest {
         }
     }
 
+    @Test
+    void uncatalogedTopicExplainsLibraryDoesNotHaveBookOnThatTopic() {
+        RecommendationResult result = aiService.localMatch(student, "How to crochet a wool scarf and knit winter mittens", getAvailableBooks());
+        assertNotNull(result);
+        assertTrue(result.recommendedBooks().isEmpty());
+        assertTrue(result.advice().contains("The library does not have a book on that particular topic"));
+    }
+
     private List<PhysicalItem> getAvailableBooks() {
         return Sql.read(db, c -> items.filterItems(c,
                 new com.eduaccess.dao.ItemFilter(List.of(com.eduaccess.model.ItemCategory.TEXTBOOKS), null, com.eduaccess.model.ItemStatus.AVAILABLE, null)));

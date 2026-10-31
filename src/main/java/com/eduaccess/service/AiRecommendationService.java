@@ -188,11 +188,6 @@ public final class AiRecommendationService {
             }
         }
 
-        // If still no books matched, fall back to local matching
-        if (matchedBooks.isEmpty()) {
-            return null;
-        }
-
         // Clean up the trailing [RECOMMENDED_IDS: ...] tag from student-facing advice text
         String cleanAdvice = generatedText.replaceAll("\\[RECOMMENDED_IDS:[^\\]]*\\]", "").strip();
 
@@ -240,8 +235,8 @@ public final class AiRecommendationService {
 
         sb.append("\nINSTRUCTIONS:\n");
         sb.append("1. Provide friendly, clear, encouraging guidance explaining how to tackle this learning topic or problem.\n");
-        sb.append("2. Recommend 1 to 4 books from the list above that directly help resolve the problem. Explain specifically why each recommended book is helpful.\n");
-        sb.append("3. You MUST end your response with the exact tag format on its own line: [RECOMMENDED_IDS: id1, id2, ...]\n");
+        sb.append("2. If any books in the list above directly address this topic or problem, recommend 1 to 4 of them and explain why each is helpful. End your response with: [RECOMMENDED_IDS: id1, id2, ...]\n");
+        sb.append("3. IMPORTANT: If none of the available books in the library cover the student's problem or topic, explicitly state in your advice that the library currently does not have a book on that particular topic. Provide helpful general guidance on how to study the topic, and end your response with: [RECOMMENDED_IDS: none]\n");
         sb.append("4. ONLY use IDs that appear in the available books list above.\n");
 
         return sb.toString();
@@ -275,14 +270,8 @@ public final class AiRecommendationService {
         if (!scored.isEmpty()) {
             matches = scored.stream().limit(4).map(ScoredBook::book).toList();
         } else {
-            // If no exact subject match, show books that match the student's level, up to 3
-            matches = availableBooks.stream()
-                    .filter(b -> studentLevel != null && b.levels().contains(studentLevel))
-                    .limit(3)
-                    .toList();
-            if (matches.isEmpty()) {
-                matches = availableBooks.stream().limit(3).toList();
-            }
+            // No matching books for this topic in the physical library
+            matches = List.of();
         }
 
         String advice = generateLocalAdvice(query, matches, student);
@@ -297,29 +286,36 @@ public final class AiRecommendationService {
     }
 
     private int calculateMatchScore(PhysicalItem book, String lowerQuery, Set<String> queryWords, EducationLevel studentLevel) {
-        int score = 0;
         String title = book.title().toLowerCase(Locale.ROOT);
         String brand = book.brandModel() == null ? "" : book.brandModel().toLowerCase(Locale.ROOT);
 
+        int topicScore = 0;
+
         // Direct full or phrase match
         if (lowerQuery.contains(title) || title.contains(lowerQuery)) {
-            score += 25;
+            topicScore += 25;
         }
 
         // Keyword overlap
         for (String word : queryWords) {
             if (title.contains(word)) {
-                score += 8;
+                topicScore += 8;
             }
             if (brand.contains(word)) {
-                score += 4;
+                topicScore += 4;
             }
         }
 
         // Domain concepts and synonyms
-        score += checkDomainSynergies(lowerQuery, title, brand);
+        topicScore += checkDomainSynergies(lowerQuery, title, brand);
 
-        // Grade level relevance
+        // If there is no topic match at all, do not recommend this book
+        if (topicScore == 0) {
+            return 0;
+        }
+
+        int score = topicScore;
+        // Grade level relevance bonus only if the book actually matches the topic
         if (studentLevel != null && book.levels().contains(studentLevel)) {
             score += 5;
         }
@@ -400,7 +396,11 @@ public final class AiRecommendationService {
             }
             sb.append("\nYou can borrow these items at the counter or reserve them directly using the View buttons below.");
         } else {
-            sb.append("While no exact title matches were found on the physical shelves right now, consider browsing related subjects or checking the Digital Library tab for downloadable PDF modules.");
+            sb.append("The library does not have a book on that particular topic (\"").append(query).append("\") in our physical collection at this time.\n\n");
+            sb.append("While there are currently no physical books available for this subject on our shelves, here are suggested next steps:\n");
+            sb.append("- Check our **Digital Library** tab for downloadable e-books or PDF learning modules.\n");
+            sb.append("- Check the **Student Marketplace** to see if peers are lending notes or books on this subject.\n");
+            sb.append("- Ask at **Library Counter A** to submit a book acquisition or donation request.");
         }
 
         return sb.toString();
