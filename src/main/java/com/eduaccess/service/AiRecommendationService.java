@@ -71,7 +71,7 @@ public final class AiRecommendationService {
         if (env != null && !env.isBlank()) {
             return env.strip();
         }
-    private static final String DEFAULT_FALLBACK_API_KEY = "";
+        return DEFAULT_FALLBACK_API_KEY;
     }
 
     public synchronized String getApiKey() {
